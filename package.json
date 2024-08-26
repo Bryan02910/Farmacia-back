@@ -1,0 +1,24 @@
+{
+  "name": "serverapi",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "author": "Bryan",
+  "license": "ISC",
+  "dependencies": {
+    "api": "^4.1.0",
+    "asciify-image": "^0.1.8",
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "figlet": "^1.5.2",
+    "jsonwebtoken": "^8.5.1",
+    "mysql": "^2.18.1",
+    "nodemon": "^2.0.7"
+  }
+}
