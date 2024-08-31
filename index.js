@@ -381,6 +381,50 @@ app.get('/api/rol_select', (req, res) => {
     connection.end();
 });
 
+/////////////////////////////////////////FARMACO//////////////////////////////////////
+
+app.get('/api/farmacos', (req, res) => {
+    var connection = mysql.createConnection(credentials);
+    const query = `
+       SELECT 
+       f.cod as id, 
+       f.nombre, 
+       f.descripcion, 
+       f.precio_caja, 
+       f.precio_blister, 
+       f.precio_unidad, 
+       f.precio_venta_caja, 
+       f.precio_venta_blister, 
+       f.precio_venta_unidad, 
+       f.blisters_por_caja, 
+       f.unidades_por_blister, 
+       f.stock_caja, 
+       f.stock_blister, 
+       f.stock_unidad, 
+       p.nombre AS proveedor, 
+       l.nombre AS laboratorio, 
+       f.fecha_creacion, 
+       f.ultima_actualizacion, 
+       f.stock_total_calculado, 
+       f.fecha_vencimiento 
+       FROM farmacos f 
+       INNER JOIN proveedores 
+       p ON f.proveedor_id = p.id 
+       INNER JOIN 
+       laboratorios l ON f.laboratorio_id = l.id 
+
+    `;
+    connection.query(query, (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+        connection.end();
+    });
+});
+
+
 
 app.listen(4000, async () => {
     const ascified = await asciify('helmet.png', { fit: 'box', width: 10, height: 10 });
