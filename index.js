@@ -23,6 +23,7 @@ app.get('/', (req, res) => {
     res.send('Servidor');
 });
 
+
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     const values = [username];
@@ -355,7 +356,7 @@ app.post('/api/editar', (req, res) => {
     }
 });
 
-
+//////////////////////////////////Rol//////////////////////////////////////////
 app.get('/api/roles', (req, res) => {
     var connection = mysql.createConnection(credentials);
     connection.query('SELECT id, descripcion FROM rol', (err, rows) => {
@@ -367,7 +368,6 @@ app.get('/api/roles', (req, res) => {
     });
     connection.end();
 });
-//////////////////////////////////Rol//////////////////////////////////////////
 
 app.get('/api/rol_select', (req, res) => {
     var connection = mysql.createConnection(credentials);
@@ -376,6 +376,156 @@ app.get('/api/rol_select', (req, res) => {
             res.status(500).send(err);
         } else {
             res.status(200).send(rows);
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/eliminar_rol', (req, res) => {
+    const { id } = req.body;
+    var connection = mysql.createConnection(credentials);
+    connection.query('DELETE FROM rol WHERE id = ?', [id], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "Rol Eliminado" });
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/guardar_rol', (req, res) => {
+    const { id, descripcion } = req.body;
+    const params = [[id, descripcion]];
+    var connection = mysql.createConnection(credentials);
+    connection.query('INSERT INTO rol (id, descripcion ) VALUES ?', [params], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "rol creada" });
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/editar_rol', (req, res) => {
+    const { id, descripcion} = req.body;
+    const params = [descripcion, id];
+    var connection = mysql.createConnection(credentials);
+    connection.query('UPDATE rol SET descripcion = ? WHERE id = ?', params, (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "rol editada" });
+        }
+    });
+    connection.end();
+});
+
+////////////////////////////////LABORATORIO//////////////////////////////////////
+
+app.get('/api/laboratorio', (req, res) => {
+    var connection = mysql.createConnection(credentials);
+    connection.query('SELECT * FROM laboratorios', (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/eliminar_lab', (req, res) => {
+    const { id } = req.body;
+    var connection = mysql.createConnection(credentials);
+    connection.query('DELETE FROM laboratorios WHERE id = ?', [id], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "Laboratorio Eliminado" });
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/guardar_lab', (req, res) => {
+    const { id, nombre, direccion, telefono, correo_electronico } = req.body;
+    const params = [[id, nombre, direccion, telefono, correo_electronico ]];
+    var connection = mysql.createConnection(credentials);
+    connection.query('INSERT INTO laboratorios (id, nombre, direccion, telefono, correo_electronico ) VALUES ?', [params], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "Laboratorio creada" });
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/editar_lab', (req, res) => {
+    const { id, nombre, direccion, telefono, correo_electronico} = req.body;
+    const params = [nombre, direccion, telefono, correo_electronico, id];
+    var connection = mysql.createConnection(credentials);
+    connection.query('UPDATE laboratorios SET nombre = ?, direccion = ?, telefono = ?, correo_electronico = ? WHERE id = ?', params, (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "Laboratorio editada" });
+        }
+    });
+    connection.end();
+});
+
+/////////////////////////////////////////PROVEEDOR///////////////////////////////////
+app.get('/api/proveedor', (req, res) => {
+    var connection = mysql.createConnection(credentials);
+    connection.query('SELECT * FROM proveedores', (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/eliminar_prov', (req, res) => {
+    const { id } = req.body;
+    var connection = mysql.createConnection(credentials);
+    connection.query('DELETE FROM proveedores WHERE id = ?', [id], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "Proveedor Eliminado" });
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/guardar_prov', (req, res) => {
+    const { id, nombre, direccion, telefono, correo_electronico } = req.body;
+    const params = [[id, nombre, direccion, telefono, correo_electronico ]];
+    var connection = mysql.createConnection(credentials);
+    connection.query('INSERT INTO proveedores (id, nombre, direccion, telefono, correo_electronico ) VALUES ?', [params], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "Proveedor creada" });
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/editar_prov', (req, res) => {
+    const { id, nombre, direccion, telefono, correo_electronico} = req.body;
+    const params = [nombre, direccion, telefono, correo_electronico, id];
+    var connection = mysql.createConnection(credentials);
+    connection.query('UPDATE proveedores SET nombre = ?, direccion = ?, telefono = ?, correo_electronico = ? WHERE id = ?', params, (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "Proveedor editada" });
         }
     });
     connection.end();
