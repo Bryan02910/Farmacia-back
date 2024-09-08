@@ -537,7 +537,7 @@ app.get('/api/farmacos', (req, res) => {
     var connection = mysql.createConnection(credentials);
     const query = `
        SELECT 
-       f.cod as id, 
+       f.id, 
        f.nombre, 
        f.descripcion, 
        f.precio_caja, 
@@ -551,6 +551,10 @@ app.get('/api/farmacos', (req, res) => {
        f.stock_caja, 
        f.stock_blister, 
        f.stock_unidad, 
+       f.nivel_reorden,
+       f.codigo_barras,
+       f.proveedor_id,
+       f.laboratorio_id,
        p.nombre AS proveedor, 
        l.nombre AS laboratorio, 
        f.fecha_creacion, 
@@ -572,6 +576,58 @@ app.get('/api/farmacos', (req, res) => {
         }
         connection.end();
     });
+});
+
+app.get('/api/lab_select', (req, res) => {
+    var connection = mysql.createConnection(credentials);
+    connection.query('SELECT id, nombre FROM laboratorios', (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+    });
+    connection.end();
+});
+
+app.get('/api/prov_select', (req, res) => {
+    var connection = mysql.createConnection(credentials);
+    connection.query('SELECT id, nombre FROM proveedores', (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/guardar_farmaco', (req, res) => {
+    const { id, nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento  } = req.body;
+    const params = [[id, nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento  ]];
+    var connection = mysql.createConnection(credentials);
+    connection.query('INSERT INTO farmacos (id, nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento  ) VALUES ?', [params], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "farmaco creada" });
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/editar_farmaco', (req, res) => {
+    const { id, nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento } = req.body;
+    const params = [nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento, id];
+    var connection = mysql.createConnection(credentials);
+    connection.query('UPDATE farmacos SET nombre = ?, descripcion = ?, precio_caja = ?, precio_blister = ?, precio_unidad = ?, precio_venta_caja = ?, precio_venta_blister = ?, precio_venta_unidad = ?, blisters_por_caja = ?, unidades_por_blister = ?, stock_caja = ?, stock_blister = ?, stock_unidad = ?, nivel_reorden = ?, codigo_barras = ?, proveedor_id = ?, laboratorio_id = ?, fecha_vencimiento = ?  WHERE id = ?', params, (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "Farmaco editada" });
+        }
+    });
+    connection.end();
 });
 
 
