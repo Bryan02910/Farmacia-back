@@ -631,388 +631,7 @@ app.post('/api/editar_farmaco', (req, res) => {
 });
 
 /////////////////////////////////Compras//////////////////////////////////////////
-
 /*app.post('/api/guardar_farmaco_compra', (req, res) => {
-    const { proveedorId, totalCompra, farmacos } = req.body;  // Recibe un array de farmacos y detalles de compra
-    
-    const compraParams = [proveedorId, totalCompra]; // Usamos 'null' para el auto-increment de la compra_id
-
-    const connection = mysql.createConnection(credentials);
-
-    connection.beginTransaction((err) => {
-        if (err) {
-            return res.status(500).send({ "status": "error", "message": "Error al iniciar transacción" });
-        }
-
-        // Inserción en la tabla compras
-        connection.query('INSERT INTO compras (proveedor_id, total_compra) VALUES (?, ?)', compraParams, (err, result) => {
-            if (err) {
-                return connection.rollback(() => {
-                    res.status(500).send({ "status": "error", "message": "Error al insertar compra" });
-                });
-            }
-
-            const compra_id = result.insertId;  // Obtener el ID de la compra recién creada
-
-            // Ahora debemos iterar sobre los fármacos y agregarlos a las tablas farmacos y detalle_compras
-            const detalleCompraParams = [];
-
-            farmacos.forEach(farmaco => {
-                const farmacoParams = [
-                    null,  // Usar null para el ID auto-increment
-                    farmaco.id,
-                    farmaco.nombre,
-                    farmaco.descripcion,
-                    farmaco.precio_caja,
-                    farmaco.precio_blister,
-                    farmaco.precio_unidad,
-                    farmaco.precio_venta_caja,
-                    farmaco.precio_venta_blister,
-                    farmaco.precio_venta_unidad,
-                    farmaco.blisters_por_caja,
-                    farmaco.unidades_por_blister,
-                    farmaco.stock_caja,
-                    farmaco.stock_blister,
-                    farmaco.stock_unidad,
-                    farmaco.nivel_reorden,
-                    farmaco.codigo_barras,
-                    farmaco.proveedor_id,
-                    farmaco.laboratorio_id,
-                    farmaco.fecha_vencimiento
-                ];
-
-                // Inserción en la tabla farmacos
-                connection.query('INSERT INTO farmacos (id, nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', farmacoParams, (err, result) => {
-                    if (err) {
-                        return connection.rollback(() => {
-                            res.status(500).send({ "status": "error", "message": "Error al insertar fármaco" });
-                        });
-                    }
-
-                    const farmaco_id = result.insertId;  // Obtener el ID del fármaco recién creado
-                    detalleCompraParams.push([compra_id, farmaco_id, farmaco.cantidad, farmaco.precio_unidad]);
-
-                    // Cuando se hayan insertado todos los fármacos y detalles
-                    if (detalleCompraParams.length === farmacos.length) {
-                        // Inserción en la tabla detalle_compras
-                        connection.query('INSERT INTO detalle_compras (compra_id, farmaco_id) VALUES ?', [detalleCompraParams], (err, result) => {
-                            if (err) {
-                                return connection.rollback(() => {
-                                    res.status(500).send({ "status": "error", "message": "Error al insertar detalle de compra" });
-                                });
-                            }
-
-                            // Confirmar la transacción
-                            connection.commit((err) => {
-                                if (err) {
-                                    return connection.rollback(() => {
-                                        res.status(500).send({ "status": "error", "message": "Error al confirmar transacción" });
-                                    });
-                                }
-                                res.status(200).send({ "status": "success", "message": "Fármacos y compra registrados correctamente" });
-                            });
-                        });
-                    }
-                });
-            });
-        });
-    });
-
-    connection.end();
-});*/
-/*app.post('/api/guardar_farmaco_compra', (req, res) => {
-    const { proveedorId, total_compra, farmacos } = req.body;
-
-    console.log('Proveedor ID:', proveedorId);
-    console.log('Total Compra:', total_compra);
-    console.log('Fármacos:', farmacos);
-
-    // Asegúrate de que `credentials` esté definido correctamente
-    const connection = mysql.createConnection(credentials);
-
-    connection.beginTransaction((err) => {
-        if (err) {
-            console.error('Error al iniciar transacción:', err);
-            return res.status(500).send({ "status": "error", "message": "Error al iniciar transacción" });
-        }
-
-        const compraParams = [proveedorId, totalCompra];
-        connection.query('INSERT INTO compras (proveedor_id, total_compra) VALUES (?, ?)', compraParams, (err, result) => {
-            if (err) {
-                console.error('Error al insertar compra:', err);
-                return connection.rollback(() => {
-                    res.status(500).send({ "status": "error", "message": "Error al insertar compra" });
-                });
-            }
-
-            const compra_id = result.insertId;
-            console.log('Compra ID:', compra_id);
-
-            const detalleCompraParams = [];
-            farmacos.forEach(farmaco => {
-                const farmacoParams = [
-                    null,  // Usar null para el ID auto-increment
-                    farmaco.id,
-                    farmaco.nombre,
-                    farmaco.descripcion,
-                    farmaco.precio_caja,
-                    farmaco.precio_blister,
-                    farmaco.precio_unidad,
-                    farmaco.precio_venta_caja,
-                    farmaco.precio_venta_blister,
-                    farmaco.precio_venta_unidad,
-                    farmaco.blisters_por_caja,
-                    farmaco.unidades_por_blister,
-                    farmaco.stock_caja,
-                    farmaco.stock_blister,
-                    farmaco.stock_unidad,
-                    farmaco.nivel_reorden,
-                    farmaco.codigo_barras,
-                    farmaco.proveedor_id,
-                    farmaco.laboratorio_id,
-                    farmaco.fecha_vencimiento,
-                    compra_id // Asociar con la compra
-                ];
-                detalleCompraParams.push(farmacoParams);
-            });
-
-            // Realizar inserciones en detalle_compras
-            connection.query('INSERT INTO detalle_compras (compra_id, farmaco_id) VALUES ?', [detalleCompraParams], (err) => {
-                if (err) {
-                    console.error('Error al insertar detalle de compra:', err);
-                    return connection.rollback(() => {
-                        res.status(500).send({ "status": "error", "message": "Error al insertar detalle de compra" });
-                    });
-                }
-
-                connection.commit((err) => {
-                    if (err) {
-                        console.error('Error al hacer commit:', err);
-                        return connection.rollback(() => {
-                            res.status(500).send({ "status": "error", "message": "Error al hacer commit" });
-                        });
-                    }
-
-                    res.status(200).send({ "status": "success", "message": "Compra guardada con éxito" });
-                });
-            });
-        });
-    });
-});*/
-
-
-/*app.post('/api/guardar_farmaco_compra', (req, res) => {
-    const { proveedorId, total_compra, farmacos } = req.body;  // Recibe un array de fármacos y detalles de compra
-    
-    const compraParams = [proveedorId, total_compra]; // Usamos 'null' para el auto-increment de la compra_id
-
-    console.log('Proveedor ID:', proveedorId);
-    console.log('Total Compra:', total_compra);
-    console.log('Fármacos:', farmacos); 
-
-    const connection = mysql.createConnection(credentials);
-
-    connection.beginTransaction((err) => {   
-        if (err) {
-            return res.status(500).send({ "status": "error", "message": "Error al iniciar transacción" });
-        }
-
-        // Inserción en la tabla compras
-        connection.query('INSERT INTO compras (proveedor_id, total_compra) VALUES (?, ?)', compraParams, (err, result) => {
-            if (err) {
-                return connection.rollback(() => {
-                    res.status(500).send({ "status": "error", "message": "Error al insertar compra" });
-                });
-            }
-
-            const compra_id = result.insertId;  // Obtener el ID de la compra recién creada
-
-            // Ahora debemos iterar sobre los fármacos y agregarlos a la tabla farmacos
-            const detalleCompraParams = [];
-            let farmacosCount = 0;
-
-            farmacos.forEach(farmaco => {
-                const farmacoParams = [
-                    farmaco.id,  // Usar null para el ID auto-increment
-                    farmaco.nombre,
-                    farmaco.descripcion,
-                    farmaco.precio_caja,
-                    farmaco.precio_blister,
-                    farmaco.precio_unidad,
-                    farmaco.precio_venta_caja,
-                    farmaco.precio_venta_blister,
-                    farmaco.precio_venta_unidad,
-                    farmaco.blisters_por_caja,
-                    farmaco.unidades_por_blister,
-                    farmaco.stock_caja,
-                    farmaco.stock_blister,
-                    farmaco.stock_unidad,
-                    farmaco.nivel_reorden,
-                    farmaco.codigo_barras,
-                    farmaco.proveedor_id,  // Usar proveedorId aquí
-                    farmaco.laboratorio_id,
-                    farmaco.fecha_vencimiento  
-                ];
- 
-                // Inserción en la tabla farmacos
-                connection.query('INSERT INTO farmacos (id, nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', farmacoParams, (err, result) => {
-                    if (err) {
-                        return connection.rollback(() => {
-                            res.status(500).send({ "status": "error", "message": "Error al insertar fármaco" });
-                        });
-                    }
-
-                    const farmaco_id = result.insertId;  // Obtener el ID del fármaco recién creado
-                    detalleCompraParams.push([compra_id, farmaco_id, farmaco.cantidad, farmaco.precio_unidad]);
-
-                    farmacosCount++;
-                    // Cuando se hayan insertado todos los fármacos y detalles
-                    if (farmacosCount === farmacos.length) {
-                        // Inserción en la tabla detalle_compras
-                        connection.query('INSERT INTO detalle_compras (compra_id, farmaco_id, cantidad, precio_unitario) VALUES ?', [detalleCompraParams], (err) => {
-                            if (err) {
-                                return connection.rollback(() => {
-                                    res.status(500).send({ "status": "error", "message": "Error al insertar detalle de compra" });
-                                });
-                            }
-
-                            // Confirmar la transacción
-                            connection.commit((err) => {
-                                if (err) {
-                                    return connection.rollback(() => {
-                                        res.status(500).send({ "status": "error", "message": "Error al confirmar transacción" });
-                                    });
-                                }
-                                res.status(200).send({ "status": "success", "message": "Fármacos y compra registrados correctamente" });
-                            });
-                        });
-                    }
-                });
-            });
-        });
-    });
-
-    // No se llama a connection.end() aquí ya que se está manejando la conexión dentro de la transacción
-});*/
-
-/*app.post('/api/guardar_farmaco_compra', (req, res) => {
-    const { proveedorId, total_compra, farmacos } = req.body;  // Recibe un array de fármacos y detalles de compra
-    
-    const compraParams = [proveedorId, total_compra]; // Usamos 'null' para el auto-increment de la compra_id
-
-    console.log('Proveedor ID:', proveedorId);
-    console.log('Total Compra:', total_compra);
-    console.log('Fármacos:', farmacos); 
-
-    const connection = mysql.createConnection(credentials);
-
-    connection.beginTransaction((err) => {   
-        if (err) {
-            return res.status(500).send({
-                status: 'error',
-                message: 'Error al iniciar transacción',
-                error: err.message
-            });
-        }
-
-        // Inserción en la tabla compras
-        connection.query('INSERT INTO compras (proveedor_id, total_compra) VALUES (?, ?)', compraParams, (err, result) => {
-            if (err) {
-                return connection.rollback(() => {
-                    res.status(500).send({
-                        status: 'error',
-                        message: 'Error al insertar compra',
-                        error: err.message
-                    });
-                });
-            }
-
-            const compra_id = result.insertId;  // Obtener el ID de la compra recién creada
-
-            // Ahora debemos iterar sobre los fármacos y agregarlos a la tabla farmacos
-            const detalleCompraParams = [];
-            let farmacosCount = 0;
-
-            farmacos.forEach(farmaco => {
-                const farmacoParams = [
-                    farmaco.id,  // Usar null para el ID auto-increment
-                    farmaco.nombre,
-                    farmaco.descripcion,
-                    farmaco.precio_caja,
-                    farmaco.precio_blister,
-                    farmaco.precio_unidad,
-                    farmaco.precio_venta_caja,
-                    farmaco.precio_venta_blister,
-                    farmaco.precio_venta_unidad,
-                    farmaco.blisters_por_caja,
-                    farmaco.unidades_por_blister,
-                    farmaco.stock_caja,
-                    farmaco.stock_blister,
-                    farmaco.stock_unidad,
-                    farmaco.nivel_reorden,
-                    farmaco.codigo_barras,
-                    farmaco.proveedor_id,  // Usar proveedorId aquí
-                    farmaco.laboratorio_id,
-                    farmaco.fecha_vencimiento  
-                ];
-
-                // Inserción en la tabla farmacos
-                connection.query('INSERT INTO farmacos (id, nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', farmacoParams, (err, result) => {
-                    if (err) {
-                        return connection.rollback(() => {
-                            res.status(500).send({
-                                status: 'error',
-                                message: 'Error al insertar fármaco',
-                                error: err.message
-                            });
-                        });
-                    }
-
-                    const farmaco_id = result.insertId;  // Obtener el ID del fármaco recién creado
-                    detalleCompraParams.push([compra_id, farmaco_id]);
-
-                    farmacosCount++;
-                    // Cuando se hayan insertado todos los fármacos y detalles
-                    if (farmacosCount === farmacos.length) {
-                        // Inserción en la tabla detalle_compras
-                        connection.query('INSERT INTO detalle_compras (compra_id, farmaco_id) VALUES ?', [detalleCompraParams], (err) => {
-                            if (err) {
-                                return connection.rollback(() => {
-                                    res.status(500).send({
-                                        status: 'error',
-                                        message: 'Error al insertar detalle de compra',
-                                        error: err.message
-                                    });
-                                });
-                            }
-
-                            // Confirmar la transacción
-                            connection.commit((err) => {
-                                if (err) {
-                                    return connection.rollback(() => {
-                                        res.status(500).send({
-                                            status: 'error',
-                                            message: 'Error al confirmar transacción',
-                                            error: err.message
-                                        });
-                                    });
-                                }
-                                res.status(200).send({
-                                    status: 'success',
-                                    message: 'Fármacos y compra registrados correctamente'
-                                });
-                            });
-                        });
-                    }
-                });
-            });
-        });
-    });
-
-    // No se llama a connection.end() aquí ya que se está manejando la conexión dentro de la transacción
-});*/
-
-app.post('/api/guardar_farmaco_compra', (req, res) => {
     const { proveedorId, total_compra, farmacos } = req.body;  // Recibe un array de fármacos y detalles de compra
 
     const compraParams = [proveedorId, total_compra]; // Usamos 'null' para el auto-increment de la compra_id
@@ -1085,7 +704,7 @@ app.post('/api/guardar_farmaco_compra', (req, res) => {
                         });
                     }
                 });
-
+ 
                 farmacoQueries.push(query);
             });
 
@@ -1101,7 +720,7 @@ app.post('/api/guardar_farmaco_compra', (req, res) => {
                         return connection.rollback(() => {
                             connection.end();  // Asegúrate de cerrar la conexión
                             res.status(500).send({
-                                status: 'error',
+                                status: 'error', 
                                 message: 'Error al confirmar transacción',
                                 error: err.message
                             });
@@ -1126,7 +745,125 @@ app.post('/api/guardar_farmaco_compra', (req, res) => {
             });
         });
     });
+});*/
+
+app.post('/api/guardar_farmaco_compra', (req, res) => {
+    const { proveedorId, total_compra, farmacos } = req.body;  // Recibe un array de fármacos y detalles de compra
+
+    const compraParams = [proveedorId, total_compra]; 
+
+    console.log('Proveedor ID:', proveedorId);
+    console.log('Total Compra:', total_compra);
+    console.log('Fármacos:', farmacos); 
+
+    const connection = mysql.createConnection(credentials);
+
+    connection.beginTransaction((err) => {   
+        if (err) {
+            return res.status(500).send({
+                status: 'error',
+                message: 'Error al iniciar transacción',
+                error: err.message
+            });
+        }
+
+        // Inserción en la tabla compras
+        connection.query('INSERT INTO compras (proveedor_id, total_compra) VALUES (?, ?)', compraParams, (err, result) => {
+            if (err) {
+                return connection.rollback(() => {
+                    connection.end();  // Asegúrate de cerrar la conexión
+                    res.status(500).send({
+                        status: 'error',
+                        message: 'Error al insertar compra',
+                        error: err.message
+                    });
+                });
+            }
+
+            const compra_id = result.insertId;  // Obtener el ID de la compra recién creada
+
+            // Promesas individuales para cada inserción de fármacos
+            const insertFarmaco = (farmaco) => {
+                return new Promise((resolve, reject) => {
+                    const farmacoParams = [
+                        farmaco.id,
+                        farmaco.nombre,
+                        farmaco.descripcion,
+                        farmaco.precio_caja,
+                        farmaco.precio_blister,
+                        farmaco.precio_unidad,
+                        farmaco.precio_venta_caja,
+                        farmaco.precio_venta_blister,
+                        farmaco.precio_venta_unidad,
+                        farmaco.blisters_por_caja,
+                        farmaco.unidades_por_blister,
+                        farmaco.stock_caja,
+                        farmaco.stock_blister,
+                        farmaco.stock_unidad,
+                        farmaco.nivel_reorden,
+                        farmaco.codigo_barras,
+                        farmaco.proveedor_id,  // Usar proveedorId aquí
+                        farmaco.laboratorio_id,
+                        farmaco.fecha_vencimiento  
+                    ];
+
+                    connection.query('INSERT INTO farmacos (id, nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', farmacoParams, (err) => {
+                        if (err) {
+                            return reject(new Error('Error al insertar fármaco: ' + err.message));
+                        }
+                        resolve();
+                    });
+                });
+            };
+
+            // Ejecutar las inserciones de los fármacos de forma secuencial
+            const insertAllFarmacos = async () => {
+                for (const farmaco of farmacos) {
+                    try {
+                        await insertFarmaco(farmaco);
+                    } catch (error) {
+                        return Promise.reject(error);
+                    }
+                }
+                return Promise.resolve();
+            };
+
+            // Intentar insertar todos los fármacos y finalizar la transacción
+            insertAllFarmacos()
+                .then(() => {
+                    connection.commit((err) => {
+                        if (err) {
+                            return connection.rollback(() => {
+                                connection.end();  // Asegúrate de cerrar la conexión
+                                res.status(500).send({
+                                    status: 'error',
+                                    message: 'Error al confirmar transacción',
+                                    error: err.message
+                                });
+                            });
+                        }
+                        connection.end();  // Asegúrate de cerrar la conexión
+                        res.status(200).send({
+                            status: 'success',
+                            message: 'Fármacos y compra registrados correctamente'
+                        });
+                    });
+                })
+                .catch((error) => {
+                    connection.rollback(() => {
+                        connection.end();  // Asegúrate de cerrar la conexión
+                        res.status(500).send({
+                            status: 'error',
+                            message: error.message
+                        });
+                    });
+                });
+        });
+    });
 });
+
+
+
 
 
 
@@ -1138,3 +875,4 @@ app.listen(4000, async () => {
     console.log(ascified);
     console.log(figlet.textSync('Server v. 1.0.0'));
 });
+ 
