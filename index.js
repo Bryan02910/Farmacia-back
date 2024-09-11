@@ -630,6 +630,19 @@ app.post('/api/editar_farmaco', (req, res) => {
     connection.end();
 });
 
+app.post('/api/eliminar_farmaco', (req, res) => {
+    const { id } = req.body;
+    var connection = mysql.createConnection(credentials);
+    connection.query('DELETE FROM farmacos WHERE id = ?', [id], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "Farmaco Eliminado" });
+        }
+    });
+    connection.end();
+});
+
 /////////////////////////////////Compras//////////////////////////////////////////
 /*app.post('/api/guardar_farmaco_compra', (req, res) => {
     const { proveedorId, total_compra, farmacos } = req.body;  // Recibe un array de fármacos y detalles de compra
