@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
 });
 
 
-app.post('/api/login', (req, res) => {
+/*app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     const values = [username];
     var connection = mysql.createConnection(credentials);
@@ -82,7 +82,7 @@ app.post('/api/login', (req, res) => {
             connection.end();
         }
     });
-});
+});*/
 
 /*app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
@@ -134,6 +134,74 @@ app.post('/api/login', (req, res) => {
         }
     });
 });*/
+
+app.post('/api/login', (req, res) => {
+    const { username, password } = req.body;
+    const values = [username];
+    var connection = mysql.createConnection(credentials);
+
+    const query = `
+        SELECT 
+            u.id, 
+            u.username, 
+            u.user, 
+            u.password, 
+            u.estado,  -- Columna para verificar si el usuario está activo
+            r.descripcion AS rol 
+        FROM 
+            usuarios u 
+        JOIN 
+            rol r ON u.rol = r.id 
+        WHERE 
+            u.username = ?
+    `;
+
+    connection.query(query, values, (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+            connection.end();
+            return;
+        }
+
+        if (result.length > 0) {
+            const user = result[0];
+
+            // Verificar si el usuario está activo
+            if (user.estado !== 'Activo') {
+                res.status(403).send('Usuario inactivo, no puede iniciar sesión');
+                connection.end();
+                return;
+            }
+
+            // Comparar la contraseña proporcionada con el hash almacenado
+            bcrypt.compare(password, user.password, (compareErr, isMatch) => {
+                if (compareErr) {
+                    res.status(500).send(compareErr);
+                    connection.end();
+                    return;
+                }
+
+                if (isMatch) {
+                    res.status(200).send({
+                        "id": user.id,
+                        "user": user.user,
+                        "username": user.username,
+                        "picture": user.picture,
+                        "rol": user.rol, // Mostrar la descripción del rol
+                        "isAuth": true
+                    });
+                } else {
+                    res.status(400).send('Credenciales incorrectas');
+                }
+
+                connection.end();
+            });
+        } else {
+            res.status(400).send('Usuario no existe');
+            connection.end();
+        }
+    });
+});
 
 
 app.get('/api/usuarios', (req, res) => {
@@ -945,12 +1013,27 @@ app.post('/api/guardar_farmaco_compra', (req, res) => {
                             // Si el fármaco ya existe, actualizamos los datos
                             connection.query(
                                 `UPDATE farmacos 
-                                 SET nombre = ?, descripcion = ?, precio_caja = ?, precio_blister = ?, precio_unidad = ?, 
-                                     precio_venta_caja = ?, precio_venta_blister = ?, precio_venta_unidad = ?, 
-                                     blisters_por_caja = ?, unidades_por_blister = ?, stock_caja = ?, 
-                                     stock_blister = ?, stock_unidad = ?, nivel_reorden = ?, codigo_barras = ?, 
-                                     proveedor_id = ?, laboratorio_id = ?, fecha_vencimiento = ?
-                                 WHERE id = ?`, 
+                                    SET 
+                                        nombre = ?, 
+                                        descripcion = ?, 
+                                        precio_caja = ?, 
+                                        precio_blister = ?, 
+                                        precio_unidad = ?, 
+                                        precio_venta_caja = ?, 
+                                        precio_venta_blister = ?, 
+                                        precio_venta_unidad = ?, 
+                                        blisters_por_caja = blisters_por_caja + ?, 
+                                        unidades_por_blister = ?, 
+                                        stock_caja = stock_caja + ?, 
+                                        stock_blister = stock_blister + ?, 
+                                        stock_unidad = stock_unidad + ?, 
+                                        nivel_reorden = ?, 
+                                        codigo_barras = ?, 
+                                        proveedor_id = ?, 
+                                        laboratorio_id = ?, 
+                                        fecha_vencimiento = ?
+                                    WHERE id = ?
+                                    `, 
                                 farmacoParams, (err) => {
                                     if (err) {
                                         return reject(new Error('Error al actualizar fármaco: ' + err.message));
