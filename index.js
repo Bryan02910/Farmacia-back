@@ -146,7 +146,7 @@ app.post('/api/login', (req, res) => {
             u.username, 
             u.user, 
             u.password, 
-            u.estado,  -- Columna para verificar si el usuario está activo
+            u.estado,  
             r.descripcion AS rol 
         FROM 
             usuarios u 
