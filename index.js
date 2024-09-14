@@ -944,13 +944,14 @@ app.post('/api/eliminar_farmaco', (req, res) => {
 });*/
 
 app.post('/api/guardar_farmaco_compra', (req, res) => {
-    const { proveedorId, total_compra, farmacos } = req.body;  // Recibe un array de fármacos y detalles de compra
+    const { proveedorId, total_compra, farmacos, Nofactura } = req.body;  // Recibe un array de fármacos y detalles de compra
 
     const compraParams = [proveedorId, total_compra];
 
     console.log('Proveedor ID:', proveedorId);
     console.log('Total Compra:', total_compra);
     console.log('Fármacos:', farmacos);
+    console.log('Factura:', Nofactura);
 
     const connection = mysql.createConnection(credentials);
 
@@ -1067,7 +1068,7 @@ app.post('/api/guardar_farmaco_compra', (req, res) => {
                                     farmaco.stock_unidad,
                                     farmaco.nivel_reorden,
                                     farmaco.codigo_barras,
-                                    farmaco.proveedor_id,
+                                    proveedorId,
                                     farmaco.laboratorio_id,
                                     farmaco.fecha_vencimiento
                                 ], (err) => {
@@ -1175,7 +1176,10 @@ app.get('/api/farmaco/:id', (req, res) => {
       connection.end();
     });
   });
+
+
   
+
 
 
 
