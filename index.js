@@ -685,7 +685,7 @@ app.post('/api/guardar_farmaco', (req, res) => {
 });
 
 app.post('/api/editar_farmaco', (req, res) => {
-    const { id, nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento } = req.body;
+    const { id, nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento, presentationType } = req.body;
     const params = [nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento, id];
     var connection = mysql.createConnection(credentials);
     connection.query('UPDATE farmacos SET nombre = ?, descripcion = ?, precio_caja = ?, precio_blister = ?, precio_unidad = ?, precio_venta_caja = ?, precio_venta_blister = ?, precio_venta_unidad = ?, blisters_por_caja = ?, unidades_por_blister = ?, stock_caja = ?, stock_blister = ?, stock_unidad = ?, nivel_reorden = ?, codigo_barras = ?, proveedor_id = ?, laboratorio_id = ?, fecha_vencimiento = ?  WHERE id = ?', params, (err, result) => {
@@ -697,6 +697,53 @@ app.post('/api/editar_farmaco', (req, res) => {
     });
     connection.end();
 });
+
+/*app.post('/api/editar_farmaco', (req, res) => {
+    const { id, nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento, presentationType, cantidad } = req.body;
+
+    var connection = mysql.createConnection(credentials);
+    
+    // Variables para la consulta SQL y los parámetros
+    let query = 'UPDATE farmacos SET ';
+    let params = [];
+
+    // Agregar campos comunes que se actualizarán en todos los casos
+    let commonFields = 'nombre = ?, descripcion = ?, nivel_reorden = ?, codigo_barras = ?, proveedor_id = ?, laboratorio_id = ?, fecha_vencimiento = ?';
+    params.push(nombre, descripcion, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento);
+
+    // Ajustar la lógica según el tipo de presentación
+    if (presentationType === 'caja') {
+        // Actualización si se vende una caja
+        query += `${commonFields}, stock_caja = GREATEST(stock_caja - ?, 0), stock_blister = GREATEST(FLOOR((stock_caja - ?) * ?), 0), stock_unidad = GREATEST(FLOOR((stock_blister) * ?), 0) WHERE id = ?`;
+        params.push(cantidad, cantidad, blisters_por_caja, unidades_por_blister, id);
+
+    } else if (presentationType === 'blister') {
+        // Actualización si se vende un blíster
+        query += `${commonFields}, stock_blister = GREATEST(stock_blister - ?, 0), stock_unidad = GREATEST(FLOOR((stock_blister) * ?), 0), stock_caja = GREATEST(FLOOR(stock_blister / ?), 0) WHERE id = ?`;
+        params.push(cantidad, unidades_por_blister, blisters_por_caja, id);
+
+    } else if (presentationType === 'unidad') {
+        // Actualización si se venden unidades
+        query += `${commonFields}, stock_unidad = GREATEST(stock_unidad - ?, 0), stock_blister = GREATEST(FLOOR(stock_unidad / ?), 0), stock_caja = GREATEST(FLOOR(stock_blister / ?), 0) WHERE id = ?`;
+        params.push(cantidad, unidades_por_blister, blisters_por_caja, id);
+
+    } else {
+        res.status(400).send({ "status": "error", "message": "Tipo de presentación no válido" });
+        return;
+    }
+
+    // Ejecutar la consulta
+    connection.query(query, params, (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "Fármaco editado correctamente" });
+        }
+    });
+
+    connection.end();
+});*/
+
 
 app.post('/api/eliminar_farmaco', (req, res) => {
     const { id } = req.body;
@@ -1063,14 +1110,89 @@ app.get('/api/farmaco/:id', (req, res) => {
     });
   });
 
+////////////////////////////////Ventas/////////////////////////////////////////////////
 
+app.get('/api/farmaco_venta/:id', (req, res) => {
+    const { id } = req.params;
+    const { tipo_presentacion } = req.query;
+
+    console.log('ID:', id);
+    console.log('TP:', tipo_presentacion);
   
-
-
-
-
-
-
+    const connection = mysql.createConnection(credentials);
+  
+    // Define the SQL query with placeholders
+    const query = `
+      SELECT 
+        f.id, 
+        f.nombre, 
+        f.descripcion, 
+        f.precio_caja, 
+        f.precio_blister, 
+        f.precio_unidad, 
+        f.precio_venta_caja, 
+        f.precio_venta_blister, 
+        f.precio_venta_unidad, 
+        f.blisters_por_caja, 
+        f.unidades_por_blister, 
+        f.stock_caja, 
+        f.stock_blister, 
+        f.stock_unidad, 
+        f.nivel_reorden,
+        f.codigo_barras,
+        f.proveedor_id,
+        f.laboratorio_id,
+        p.nombre AS proveedor, 
+        l.nombre AS laboratorio, 
+        f.fecha_creacion, 
+        f.ultima_actualizacion, 
+        f.stock_total_calculado, 
+        f.fecha_vencimiento 
+      FROM farmacos f 
+      INNER JOIN proveedores p ON f.proveedor_id = p.id 
+      INNER JOIN laboratorios l ON f.laboratorio_id = l.id 
+      WHERE f.id = ?
+    `;
+  
+    connection.query(query, [id], (err, rows) => {
+      if (err) {
+        console.error('Database query error:', err); // Log the error
+        return res.status(500).send('Error al consultar la base de datos');
+      }
+  
+      if (rows.length === 0) {
+        return res.status(404).send('Fármaco no encontrado');
+      }
+  
+      const farmaco = rows[0];
+      let precioVenta = 0;
+      let nombrePresentacion = '';
+  
+      switch (tipo_presentacion) {
+        case 'caja':
+          precioVenta = farmaco.precio_venta_caja;
+          nombrePresentacion = 'Caja';
+          break;
+        case 'blister':
+          precioVenta = farmaco.precio_venta_blister;
+          nombrePresentacion = 'Blister';
+          break;
+        case 'unidad':
+          precioVenta = farmaco.precio_venta_unidad;
+          nombrePresentacion = 'Unidad';
+          break;
+        default:
+          return res.status(400).send('Tipo de presentación inválido');
+      }
+  
+      res.status(200).send({
+        nombre: farmaco.nombre,
+        precio_venta: precioVenta,
+      });
+  
+      connection.end();
+    });
+  });
 
 app.listen(4000, async () => {
     const ascified = await asciify('helmet.png', { fit: 'box', width: 10, height: 10 });
