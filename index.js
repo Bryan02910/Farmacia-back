@@ -2,8 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql');
 const bodyParser = require('body-parser');
-const figlet = require('figlet');
-const asciify = require('asciify-image');
 const bcrypt = require('bcrypt');
 const app = express();
 
@@ -1194,9 +1192,10 @@ app.get('/api/farmaco_venta/:id', (req, res) => {
     });
   });
 
-app.listen(4000, async () => {
-    const ascified = await asciify('helmet.png', { fit: 'box', width: 10, height: 10 });
-    console.log(ascified);
-    console.log(figlet.textSync('Server v. 1.0.0'));
+
+
+app.listen(5000, () => {
+    console.log('Server 5000');
 });
+
  
