@@ -756,6 +756,73 @@ app.post('/api/eliminar_farmaco', (req, res) => {
     connection.end();
 });
 
+//////////////////////////Tipo Documento///////////////////////////////////////////
+app.get('/api/tipo_documento', (req, res) => {
+    var connection = mysql.createConnection(credentials);
+    connection.query('SELECT id, nombre_documento FROM tipo_documento', (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+    });
+    connection.end();
+});
+
+app.get('/api/documento_select', (req, res) => {
+    var connection = mysql.createConnection(credentials);
+    connection.query('SELECT * FROM tipo_documento', (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/eliminar_documento', (req, res) => {
+    const { id } = req.body;
+    var connection = mysql.createConnection(credentials);
+    connection.query('DELETE FROM tipo_documento WHERE id = ?', [id], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "Documento Eliminado" });
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/guardar_documento', (req, res) => {
+    const { id, descripcion } = req.body;
+    const params = [[id, descripcion]];
+    var connection = mysql.createConnection(credentials);
+    connection.query('INSERT INTO tipo_documento (id, nombre_documento ) VALUES ?', [params], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "Documento creada" });
+        }
+    });
+    connection.end();
+});
+
+app.post('/api/editar_documento', (req, res) => {
+    const { id, descripcion} = req.body;
+    const params = [descripcion, id];
+    var connection = mysql.createConnection(credentials);
+    connection.query('UPDATE tipo_documento SET nombre_documento = ? WHERE id = ?', params, (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ "status": "success", "message": "Documento editada" });
+        }
+    });
+    connection.end();
+});
+
+
 /////////////////////////////////Compras//////////////////////////////////////////
 
 /*app.post('/api/guardar_farmaco_compra', (req, res) => {
@@ -874,13 +941,14 @@ app.post('/api/eliminar_farmaco', (req, res) => {
 });*/
 
 app.post('/api/guardar_farmaco_compra', (req, res) => {
-    const { proveedorId, total_compra, farmacos, Nofactura } = req.body;  // Recibe un array de fármacos y detalles de compra
+    const { proveedorId, total_compra, farmacos, Nofactura, documentoId} = req.body;  // Recibe un array de fármacos y detalles de compra
 
-    const compraParams = [proveedorId, total_compra, Nofactura ];
+    const compraParams = [proveedorId, total_compra, Nofactura, documentoId];
 
     console.log('Proveedor ID:', proveedorId);
     console.log('Total Compra:', total_compra);
     console.log('Factura:', Nofactura);
+    console.log('Documento:', documentoId);
     console.log('Fármacos:', farmacos);
    
 
@@ -896,7 +964,7 @@ app.post('/api/guardar_farmaco_compra', (req, res) => {
         }
 
         // Inserción en la tabla compras
-        connection.query('INSERT INTO compras (proveedor_id, total_compra, Nofactura) VALUES (?, ?, ?)', compraParams, (err, result) => {
+        connection.query('INSERT INTO compras (proveedor_id, total_compra, Nofactura, tipo_documento_id) VALUES (?, ?, ?, ?)', compraParams, (err, result) => {
             if (err) {
                 return connection.rollback(() => {
                     connection.end();  // Asegúrate de cerrar la conexión
@@ -1192,322 +1260,7 @@ app.get('/api/farmaco_venta/:id', (req, res) => {
     });
   });
 
-  
-
-/*app.post('/api/guardar_farmaco_venta', (req, res) => {
-    const { total_venta, farmacos, Nofactura } = req.body;
-    const ventaParams = [total_venta, Nofactura];
-
-    console.log('F:', farmacos);
-    console.log('TV:', total_venta);
-    console.log('No:', Nofactura);
-    console.log('Request Body:', req.body);
-
-    const connection = mysql.createConnection(credentials);
-
-    connection.beginTransaction((err) => {
-        if (err) {
-            return res.status(500).send({
-                status: 'error',
-                message: 'Error al iniciar transacción',
-                error: err.message
-            });
-        }
-
-        // Inserción en la tabla ventas
-        connection.query('INSERT INTO ventas (total_venta, Nofactura) VALUES (?, ?)', ventaParams, (err, result) => {
-            if (err) {
-                return connection.rollback(() => {
-                    connection.end();
-                    res.status(500).send({
-                        status: 'error',
-                        message: 'Error al insertar venta',
-                        error: err.message
-                    });
-                });
-            }
-
-            const venta_id = result.insertId;
-
-            const updateFarmacoStock = (farmacos) => {
-                return new Promise((resolve, reject) => {
-                    const { id, cantidad, tipo_presentacion } = farmacos;
-
-                    // Consultar stock actual y detalles de la presentación
-                    connection.query('SELECT stock_unidad, stock_blister, stock_caja, blisters_por_caja, unidades_por_blister FROM farmacos WHERE id = ?', [id], (err, rows) => {
-                        if (err) {
-                            return reject(new Error('Error al verificar fármaco: ' + err.message));
-                        }
-
-                        if (rows.length > 0) {
-                            const { stock_unidad, stock_blister, stock_caja, blisters_por_caja, unidades_por_blister } = rows[0];
-
-                            if (tipo_presentacion === 'unidad') {
-                                let unidades_a_disminuir = cantidad;
-                                let stockActualUnidades = stock_unidad;
-                                let stockActualBlisters = stock_blister;
-                                let stockActualCajas = stock_caja;
-
-                                let nuevasUnidades = stockActualUnidades - unidades_a_disminuir;
-                                let blisters_a_disminuir = 0;
-
-                                if (nuevasUnidades < 0 || nuevasUnidades % unidades_por_blister === 0) {
-                                    blisters_a_disminuir = Math.floor((stockActualUnidades - nuevasUnidades) / unidades_por_blister);
-                                    nuevasUnidades = nuevasUnidades % unidades_por_blister;
-                                }
-
-                                let nuevosBlisters = stockActualBlisters - blisters_a_disminuir;
-                                let cajas_a_disminuir = 0;
-
-                                if (nuevosBlisters < 0 || nuevosBlisters % blisters_por_caja === 0) {
-                                    cajas_a_disminuir = Math.floor((stockActualBlisters - nuevosBlisters) / blisters_por_caja);
-                                    nuevosBlisters = nuevosBlisters % blisters_por_caja;
-                                }
-
-                                const updateQuery = `
-                                    UPDATE farmacos
-                                    SET stock_unidad = GREATEST(?, 0),
-                                        stock_blister = GREATEST(?, 0),
-                                        stock_caja = GREATEST(?, 0)
-                                    WHERE id = ?`;
-                                const updateParams = [nuevasUnidades, nuevosBlisters, stockActualCajas - cajas_a_disminuir, id];
-
-                                connection.query(updateQuery, updateParams, (err) => {
-                                    if (err) {
-                                        return reject(new Error('Error al actualizar el stock del fármaco: ' + err.message));
-                                    }
-                                    resolve();
-                                });
-                            } else if (tipo_presentacion === 'blister') {
-                                let blisters_a_disminuir = cantidad;
-                                let stockActualBlisters = stock_blister;
-                                let stockActualCajas = stock_caja;
-
-                                let nuevosBlisters = stockActualBlisters - blisters_a_disminuir;
-                                let cajas_a_disminuir = 0;
-
-                                if (nuevosBlisters < 0 || nuevosBlisters % blisters_por_caja === 0) {
-                                    cajas_a_disminuir = Math.floor((stockActualBlisters - nuevosBlisters) / blisters_por_caja);
-                                    nuevosBlisters = nuevosBlisters % blisters_por_caja;
-                                }
-
-                                let nuevasUnidades = stockActualBlisters * unidades_por_blister;
-
-                                const updateQuery = `
-                                    UPDATE farmacos
-                                    SET stock_blister = GREATEST(?, 0),
-                                        stock_caja = GREATEST(stock_caja - ?, 0),
-                                        stock_unidad = GREATEST(stock_unidad - ?, 0)
-                                    WHERE id = ?`;
-                                const updateParams = [nuevosBlisters, cajas_a_disminuir, nuevasUnidades, id];
-
-                                connection.query(updateQuery, updateParams, (err) => {
-                                    if (err) {
-                                        return reject(new Error('Error al actualizar el stock del fármaco: ' + err.message));
-                                    }
-                                    resolve();
-                                });
-                            } else if (tipo_presentacion === 'caja') {
-                                const updateQuery = `
-                                    UPDATE farmacos
-                                    SET stock_caja = GREATEST(stock_caja - ?, 0),
-                                        stock_blister = GREATEST(stock_blister - (? * blisters_por_caja), 0),
-                                        stock_unidad = GREATEST(stock_unidad - (? * blisters_por_caja * unidades_por_blister), 0)
-                                    WHERE id = ?`;
-                                const updateParams = [cantidad, cantidad, cantidad, id];
-
-                                connection.query(updateQuery, updateParams, (err) => {
-                                    if (err) {
-                                        return reject(new Error('Error al actualizar el stock del fármaco: ' + err.message));
-                                    }
-                                    resolve();
-                                });
-                            } else {
-                                reject(new Error('Tipo de presentación no soportado.'));
-                            }
-                        } else {
-                            reject(new Error('El fármaco no existe en la base de datos.'));
-                        }
-                    });
-                });
-            };
-
-            updateFarmacoStock(farmacos)
-                .then(() => {
-                    connection.commit((err) => {
-                        if (err) {
-                            return connection.rollback(() => {
-                                res.status(500).send({
-                                    status: 'error',
-                                    message: 'Error al confirmar transacción',
-                                    error: err.message
-                                });
-                            });
-                        }
-                        res.status(200).send({
-                            status: 'success',
-                            message: 'Venta registrada y stock actualizado correctamente.',
-                            venta_id
-                        });
-                    });
-                })
-                .catch((err) => {
-                    connection.rollback(() => {
-                        res.status(500).send({
-                            status: 'error',
-                            message: err.message
-                        });
-                    });
-                });
-        });
-    });
-});*/
-
-
-/*app.post('/api/guardar_farmaco_venta', (req, res) => {
-    const { total_venta, farmacos, Nofactura } = req.body;
-
-    if (!total_venta || !farmacos || !Nofactura) {
-        return res.status(400).send({ status: 'error', message: 'Faltan datos en la solicitud' });
-    }
-
-    const ventaParams = [total_venta, Nofactura];
-    const connection = mysql.createConnection(credentials);
-
-    connection.beginTransaction((err) => {
-        if (err) {
-            return res.status(500).send({
-                status: 'error',
-                message: 'Error al iniciar transacción',
-                error: err.message
-            });
-        }
-
-        // Inserción en la tabla ventas
-        connection.query('INSERT INTO ventas (total_venta, Nofactura) VALUES (?, ?)', ventaParams, (err, result) => {
-            if (err) {
-                return connection.rollback(() => {
-                    connection.end();
-                    res.status(500).send({
-                        status: 'error',
-                        message: 'Error al insertar venta',
-                        error: err.message
-                    });
-                });
-            }
-
-            const venta_id = result.insertId;
-
-            // Función para actualizar el stock de un fármaco
-            const updateFarmacoStock = (farmaco) => {
-                return new Promise((resolve, reject) => {
-                    const { id, cantidad, tipo_presentacion } = farmaco;
-
-                    // Consultar stock actual y detalles de la presentación
-                    connection.query('SELECT stock_unidad, stock_blister, stock_caja, blisters_por_caja, unidades_por_blister FROM farmacos WHERE id = ?', [id], (err, rows) => {
-                        if (err) {
-                            return reject(new Error('Error al verificar fármaco: ' + err.message));
-                        }
-
-                        if (rows.length > 0) {
-                            const { stock_unidad, stock_blister, stock_caja, blisters_por_caja, unidades_por_blister } = rows[0];
-                            
-                            if (tipo_presentacion === 'unidad') {
-                                let nuevasUnidades = stock_unidad - cantidad;
-                                let blisters_a_disminuir = Math.floor(nuevasUnidades / unidades_por_blister);
-                                nuevasUnidades = nuevasUnidades % unidades_por_blister;
-
-                                const updateQuery = `
-                                    UPDATE farmacos
-                                    SET stock_unidad = GREATEST(?, 0),
-                                        stock_blister = GREATEST(stock_blister - ?, 0),
-                                        stock_caja = GREATEST(stock_caja - ?, 0)
-                                    WHERE id = ?`;
-                                const updateParams = [nuevasUnidades, blisters_a_disminuir, Math.floor(blisters_a_disminuir / blisters_por_caja), id];
-
-                                connection.query(updateQuery, updateParams, (err) => {
-                                    if (err) {
-                                        return reject(new Error('Error al actualizar el stock del fármaco: ' + err.message));
-                                    }
-                                    resolve();
-                                });
-                            } else if (tipo_presentacion === 'blister') {
-                                let nuevosBlisters = stock_blister - cantidad;
-                                let unidades_a_disminuir = cantidad * unidades_por_blister;
-
-                                const updateQuery = `
-                                    UPDATE farmacos
-                                    SET stock_blister = GREATEST(?, 0),
-                                        stock_unidad = GREATEST(stock_unidad - ?, 0)
-                                    WHERE id = ?`;
-                                const updateParams = [nuevosBlisters, unidades_a_disminuir, id];
-
-                                connection.query(updateQuery, updateParams, (err) => {
-                                    if (err) {
-                                        return reject(new Error('Error al actualizar el stock del fármaco: ' + err.message));
-                                    }
-                                    resolve();
-                                });
-                            } else if (tipo_presentacion === 'caja') {
-                                let nuevosCajas = stock_caja - cantidad;
-
-                                const updateQuery = `
-                                    UPDATE farmacos
-                                    SET stock_caja = GREATEST(?, 0)
-                                    WHERE id = ?`;
-                                const updateParams = [nuevosCajas, id];
-
-                                connection.query(updateQuery, updateParams, (err) => {
-                                    if (err) {
-                                        return reject(new Error('Error al actualizar el stock del fármaco: ' + err.message));
-                                    }
-                                    resolve();
-                                });
-                            } else {
-                                reject(new Error('Tipo de presentación no válido.'));
-                            }
-                        } else {
-                            reject(new Error('El fármaco no existe en la base de datos.'));
-                        }
-                    });
-                });
-            };
-
-            // Actualizar el stock para cada fármaco en el array
-            const promises = farmacos.map(farmaco => updateFarmacoStock(farmaco));
-
-            Promise.all(promises)
-                .then(() => {
-                    connection.commit((err) => {
-                        if (err) {
-                            return connection.rollback(() => {
-                                res.status(500).send({
-                                    status: 'error',
-                                    message: 'Error al confirmar transacción',
-                                    error: err.message
-                                });
-                            });
-                        }
-                        res.status(200).send({
-                            status: 'success',
-                            message: 'Venta registrada y stock actualizado correctamente.',
-                            venta_id
-                        });
-                    });
-                })
-                .catch((err) => {
-                    connection.rollback(() => {
-                        res.status(500).send({
-                            status: 'error',
-                            message: err.message
-                        });
-                    });
-                });
-        });
-    });
-});*/
-
-app.post('/api/guardar_farmaco_venta', (req, res) => {
+  app.post('/api/guardar_farmaco_venta', (req, res) => {
     const { total_venta, farmacos, Nofactura } = req.body;
 
     // Verificación de parámetros
@@ -1557,32 +1310,50 @@ app.post('/api/guardar_farmaco_venta', (req, res) => {
                             const { stock_unidad, stock_blister, stock_caja, blisters_por_caja, unidades_por_blister } = rows[0];
 
                             // Lógica para presentación "unidad"
+                            // Lógica para presentación "unidad"
                             if (tipo_presentacion === 'unidad') {
                                 let unidades_a_disminuir = cantidad;
                                 let nuevasUnidades = stock_unidad - unidades_a_disminuir;
-                                let blisters_a_disminuir = 0;
+                                let nuevosBlisters = stock_blister;
+                                let nuevasCajas = stock_caja;
 
-                                if (nuevasUnidades < 0 || nuevasUnidades % unidades_por_blister === 0) {
-                                    blisters_a_disminuir = Math.floor((stock_unidad - nuevasUnidades) / unidades_por_blister);
-                                    nuevasUnidades = nuevasUnidades % unidades_por_blister;
+                                // Si las unidades no son suficientes, descontamos de los blisters
+                                if (nuevasUnidades < 0) {
+                                    // Cuántas unidades faltan
+                                    let unidades_faltantes = Math.abs(nuevasUnidades);
+
+                                    // Cuántos blisters necesitamos para cubrir esas unidades faltantes
+                                    let blisters_necesarios = Math.ceil(unidades_faltantes / unidades_por_blister);
+                                    
+                                    // Restamos esos blisters del stock de blisters
+                                    nuevosBlisters = nuevosBlisters - blisters_necesarios;
+
+                                    // Calculamos el nuevo stock de unidades después de usar los blisters
+                                    nuevasUnidades = (blisters_necesarios * unidades_por_blister) - unidades_faltantes;
+
+                                    // Si no hay suficientes blisters, descontamos de las cajas
+                                    if (nuevosBlisters < 0) {
+                                        let blisters_faltantes = Math.abs(nuevosBlisters);
+                                        let cajas_necesarias = Math.ceil(blisters_faltantes / blisters_por_caja);
+
+                                        // Restamos esas cajas del stock de cajas
+                                        nuevasCajas = stock_caja - cajas_necesarias;
+
+                                        // Calculamos el nuevo stock de blisters después de usar las cajas
+                                        nuevosBlisters = (cajas_necesarias * blisters_por_caja) - blisters_faltantes;
+                                    }
                                 }
 
-                                let nuevosBlisters = stock_blister - blisters_a_disminuir;
-                                let cajas_a_disminuir = 0;
-
-                                if (nuevosBlisters < 0 || nuevosBlisters % blisters_por_caja === 0) {
-                                    cajas_a_disminuir = Math.floor((stock_blister - nuevosBlisters) / blisters_por_caja);
-                                    nuevosBlisters = nuevosBlisters % blisters_por_caja;
-                                }
-
+                                // Aseguramos que los valores sean mayores o iguales a cero antes de actualizar
                                 const updateQuery = `
                                     UPDATE farmacos
                                     SET stock_unidad = GREATEST(?, 0),
                                         stock_blister = GREATEST(?, 0),
                                         stock_caja = GREATEST(?, 0)
                                     WHERE id = ?`;
-                                const updateParams = [nuevasUnidades, nuevosBlisters, stock_caja - cajas_a_disminuir, id];
 
+                                const updateParams = [nuevasUnidades, nuevosBlisters, nuevasCajas,  id];
+                              
                                 connection.query(updateQuery, updateParams, (err) => {
                                     if (err) {
                                         return reject(new Error('Error al actualizar el stock del fármaco: ' + err.message));
@@ -1590,6 +1361,13 @@ app.post('/api/guardar_farmaco_venta', (req, res) => {
                                     resolve();
                                 });
                             }
+
+                            
+                            
+                            
+                            
+                            
+                            
                             // Lógica para presentación "blister"
                             else if (tipo_presentacion === 'blister') {
                                 let blisters_a_disminuir = cantidad;
@@ -1673,6 +1451,9 @@ app.post('/api/guardar_farmaco_venta', (req, res) => {
         });
     });
 });
+
+
+
 
 
 
