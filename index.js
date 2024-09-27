@@ -604,13 +604,13 @@ app.get('/api/farmacos', (req, res) => {
     const query = `
        SELECT 
        f.id, 
-       f.nombre, 
+       f.nombre,  
        f.descripcion, 
        f.precio_caja, 
        f.precio_blister, 
        f.precio_unidad, 
        f.precio_venta_caja, 
-       f.precio_venta_blister, 
+       f.precio_venta_blister,  
        f.precio_venta_unidad, 
        f.blisters_por_caja, 
        f.unidades_por_blister, 
@@ -680,7 +680,7 @@ app.post('/api/guardar_farmaco', (req, res) => {
         }
     });
     connection.end();
-});
+}); 
 
 app.post('/api/editar_farmaco', (req, res) => {
     const { id, nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, laboratorio_id, fecha_vencimiento, presentationType } = req.body;
@@ -754,7 +754,7 @@ app.post('/api/eliminar_farmaco', (req, res) => {
         }
     });
     connection.end();
-});
+}); 
 
 //////////////////////////Tipo Documento///////////////////////////////////////////
 app.get('/api/tipo_documento', (req, res) => {
