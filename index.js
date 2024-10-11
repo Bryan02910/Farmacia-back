@@ -33,117 +33,6 @@ app.get('/', (req, res) => {
             u.username, 
             u.user, 
             u.password, 
-            r.descripcion AS rol 
-        FROM 
-            usuarios u 
-        JOIN 
-            rol r ON u.rol = r.id 
-        WHERE 
-            u.username = ?
-    `;
-
-    connection.query(query, values, (err, result) => {
-        if (err) {
-            res.status(500).send(err);
-            connection.end();
-            return;
-        }
-
-        if (result.length > 0) {
-            const user = result[0];
-
-            // Comparar la contraseña proporcionada con el hash almacenado
-            bcrypt.compare(password, user.password, (compareErr, isMatch) => {
-                if (compareErr) {
-                    res.status(500).send(compareErr);
-                    connection.end();
-                    return;
-                }
-
-                if (isMatch) {
-                    res.status(200).send({
-                        "id": user.id,
-                        "user": user.user,
-                        "username": user.username,
-                        "picture": user.picture,
-                        "rol": user.rol, // Mostrar la descripción del rol
-                        "isAuth": true
-                    });
-                } else {
-                    res.status(400).send('Credenciales incorrectas');
-                }
-
-                connection.end();
-            });
-        } else {
-            res.status(400).send('Usuario no existe');
-            connection.end();
-        }
-    });
-});*/
-
-/*app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    const values = [username];
-    const connection = mysql.createConnection(credentials);
-
-    const query = `
-        SELECT 
-            u.id, 
-            u.username, 
-            u.user, 
-            u.password, 
-            r.descripcion AS rol 
-        FROM 
-            usuarios u 
-        JOIN 
-            rol r ON u.rol = r.id 
-        WHERE 
-            u.username = ?
-    `;
-
-    connection.query(query, values, (err, result) => {
-        if (err) {
-            res.status(500).send(err);
-            connection.end();
-            return;
-        }
-
-        if (result.length > 0) {
-            const user = result[0];
-
-            // Comparar la contraseña proporcionada con la contraseña almacenada en texto plano
-            if (password === user.password) {
-                res.status(200).send({
-                    "id": user.id,
-                    "user": user.user,
-                    "username": user.username,
-                    "rol": user.rol,
-                    "isAuth": true
-                });
-            } else {
-                res.status(400).send('Credenciales incorrectas');
-            }
-
-            connection.end();
-        } else {
-            res.status(400).send('Usuario no existe');
-            connection.end();
-        }
-    });
-});*/
-
-app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    const values = [username];
-    var connection = mysql.createConnection(credentials);
-
-    const query = `
-        SELECT 
-            u.id, 
-            u.username, 
-            u.user, 
-            u.password, 
             u.estado,  
             r.descripcion AS rol 
         FROM 
@@ -199,7 +88,90 @@ app.post('/api/login', (req, res) => {
             connection.end();
         }
     });
+});*/
+
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+    const connection = mysql.createConnection(credentials);
+
+    try {
+        const query = `
+            SELECT 
+                u.id, 
+                u.username, 
+                u.user, 
+                u.password, 
+                u.estado,  
+                r.descripcion AS rol,
+                GROUP_CONCAT(p.nombre) AS permisos
+            FROM 
+                usuarios u 
+            JOIN 
+                rol r ON u.rol = r.id 
+            LEFT JOIN 
+                rol_permisos_modulos rpm ON rpm.rol_id = r.id 
+            LEFT JOIN 
+                permisos p ON rpm.permiso_id = p.id 
+            WHERE 
+                u.username = ?
+            GROUP BY u.id;
+        `;
+
+        const values = [username];
+        connection.query(query, values, (err, result) => {
+            if (err) {
+                return res.status(500).send(err);
+            }
+
+            if (result.length > 0) {
+                const user = result[0];
+
+                if (user.estado !== 'Activo') {
+                    return res.status(403).send('Usuario inactivo, no puede iniciar sesión');
+                }
+
+                // Aquí deberías comparar la contraseña
+                bcrypt.compare(password, user.password, (compareErr, isMatch) => {
+                    if (compareErr) {
+                        return res.status(500).send(compareErr);
+                    }
+
+                    if (isMatch) {
+                        const permissions = user.permisos ? user.permisos.split(',') : []; // Si no hay permisos, será un array vacío
+
+                        // Si no hay permisos, puedes manejarlo como desees
+                        if (permissions.length === 0) {
+                            console.warn(`Usuario ${username} no tiene permisos asignados.`);
+                            // Puedes enviar un mensaje indicando que el usuario no tiene permisos
+                            return res.status(403).send('El usuario no tiene permisos asignados');
+                        }
+
+                        return res.status(200).send({
+                            "id": user.id,
+                            "user": user.user,
+                            "username": user.username,
+                            "rol": user.rol,
+                            "permissions": permissions,
+                            "isAuth": true
+                        });
+                    } else {
+                        return res.status(400).send('Credenciales incorrectas');
+                    }
+                });
+            } else {
+                return res.status(400).send('Usuario no existe');
+            }
+        });
+    } catch (error) {
+        console.error('Error en el servidor:', error);
+        return res.status(500).send('Error en el servidor');
+    } finally {
+        connection.end();
+    }
 });
+
+
+
 
 
 app.get('/api/usuarios', (req, res) => {
