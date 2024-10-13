@@ -460,6 +460,95 @@ app.post('/api/editar_rol', (req, res) => {
     connection.end();
 });
 
+//////////////////Permisos//////////////////////////////////////////////////////
+app.get('/api/permisos', (req, res) => {
+    var connection = mysql.createConnection(credentials);
+    
+    const query = `
+        SELECT
+            r.id AS id, 
+            r.descripcion AS rol,
+            MAX(CASE WHEN p.id = '1' THEN 'Sí' ELSE 'No' END) AS ver_usuarios,
+            MAX(CASE WHEN p.id = '2' THEN 'Sí' ELSE 'No' END) AS ver_ventas,
+            MAX(CASE WHEN p.id = '3' THEN 'Sí' ELSE 'No' END) AS ver_compras,
+            MAX(CASE WHEN p.id = '4' THEN 'Sí' ELSE 'No' END) AS ver_inventario,
+            MAX(CASE WHEN p.id = '5' THEN 'Sí' ELSE 'No' END) AS ver_notificaciones,
+            MAX(CASE WHEN p.id = '6' THEN 'Sí' ELSE 'No' END) AS view_home,
+            MAX(CASE WHEN p.id = '7' THEN 'Sí' ELSE 'No' END) AS ver_rol,
+            MAX(CASE WHEN p.id = '8' THEN 'Sí' ELSE 'No' END) AS ver_lab,
+            MAX(CASE WHEN p.id = '9' THEN 'Sí' ELSE 'No' END) AS ver_prov,
+            MAX(CASE WHEN p.id = '10' THEN 'Sí' ELSE 'No' END) AS ver_historial_compras,
+            MAX(CASE WHEN p.id = '11' THEN 'Sí' ELSE 'No' END) AS ver_historial_ventas,
+            MAX(CASE WHEN p.id = '12' THEN 'Sí' ELSE 'No' END) AS ver_tipod,
+            MAX(CASE WHEN p.id = '13' THEN 'Sí' ELSE 'No' END) AS ver_permisos
+        FROM 
+            rol r
+        LEFT JOIN 
+            rol_permisos_modulos rpm ON rpm.rol_id = r.id
+        LEFT JOIN 
+            permisos p ON rpm.permiso_id = p.id
+        GROUP BY 
+            r.id;
+    `;
+
+    connection.query(query, (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+    });
+    
+    connection.end();
+});
+
+
+app.post('/api/guardar_permiso', (req, res) => {
+    const { rolId, permisoId } = req.body; // ID del rol y del permiso a guardar
+
+    const query = `
+        INSERT INTO rol_permisos_modulos (rol_id, permiso_id)
+        VALUES (?, ?)
+        ON DUPLICATE KEY UPDATE permiso_id = permiso_id; 
+    `; // Asegura que no se dupliquen los permisos
+
+    const connection = mysql.createConnection(credentials);
+    
+    connection.query(query, [rolId, permisoId], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ status: 'success', message: 'Permiso guardado correctamente' });
+        }
+    });
+
+    connection.end();
+});
+
+// Endpoint para eliminar permiso
+app.post('/api/eliminar_permiso', (req, res) => {
+    const { rolId, permisoId } = req.body; // ID del rol y del permiso a eliminar
+
+    const query = `
+        DELETE FROM rol_permisos_modulos
+        WHERE rol_id = ? AND permiso_id = ?;
+    `;
+
+    const connection = mysql.createConnection(credentials);
+    
+    connection.query(query, [rolId, permisoId], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ status: 'success', message: 'Permiso eliminado correctamente' });
+        }
+    });
+
+    connection.end();
+});
+
+
+
 ////////////////////////////////LABORATORIO//////////////////////////////////////
 
 app.get('/api/laboratorio', (req, res) => {
