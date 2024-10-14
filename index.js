@@ -1237,6 +1237,38 @@ app.get('/api/farmaco/:id', (req, res) => {
     });
   });
 
+///////////////////////////// Historial Compras ////////////////////////////////////////
+app.get('/api/historial_compras', (req, res) => {
+    var connection = mysql.createConnection(credentials);
+    const query = `
+        SELECT 
+        c.id, 
+        c.proveedor_id,  
+        c.total_compra, 
+        c.fecha_compra,
+        c.Nofactura,
+        c.tipo_documento_id,  
+        p.nombre AS proveedor, 
+        t.nombre_documento AS tipo_documento
+    FROM 
+        compras c 
+    JOIN 
+        proveedores p ON c.proveedor_id = p.id
+    JOIN 
+        tipo_documento t ON c.tipo_documento_id = t.id;
+
+    `;
+    connection.query(query, (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+        connection.end();
+    });
+});
+
+
 ////////////////////////////////Ventas/////////////////////////////////////////////////
 
 app.get('/api/farmaco_venta/:id', (req, res) => {
