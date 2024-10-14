@@ -1545,6 +1545,70 @@ app.get('/api/farmaco_venta/:id', (req, res) => {
     });
 });
 
+////////////////////////////////////// Historila ventas ////////////////////////////////
+
+app.get('/api/historial_ventas', (req, res) => {
+    var connection = mysql.createConnection(credentials);
+    connection.query('SELECT * FROM ventas', (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+    });
+    connection.end();
+});
+
+/////////////////////// Notificaciones /////////////////////////
+app.get('/api/stock_bajo', (req, res) => {
+    var connection = mysql.createConnection(credentials);
+    const query = `
+        SELECT 
+            id, 
+            nombre, 
+            stock_total_calculado, 
+            nivel_reorden
+        FROM 
+            farmacos
+        WHERE 
+            stock_total_calculado <= nivel_reorden;
+    `;
+    
+    connection.query(query, (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+    });
+    connection.end();
+});
+
+app.get('/api/farmacos_prontos_a_vencer', (req, res) => {
+    var connection = mysql.createConnection(credentials);
+    const query = `
+        SELECT 
+            id, 
+            nombre, 
+            fecha_vencimiento
+        FROM 
+            farmacos
+        WHERE 
+            fecha_vencimiento <= CURDATE() + INTERVAL 30 DAY
+        AND 
+            fecha_vencimiento IS NOT NULL;
+    `;
+    
+    connection.query(query, (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+    });
+    connection.end();
+});
+
 
 
 
