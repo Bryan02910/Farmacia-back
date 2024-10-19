@@ -1231,6 +1231,7 @@ app.post('/api/guardar_farmaco_compra', (req, res) => {
                 return new Promise((resolve, reject) => {
                     const farmacoParams = [
                         farmaco.nombre,
+                        farmaco.presentacion,
                         farmaco.descripcion,
                         farmaco.precio_caja,
                         farmaco.precio_blister,
@@ -1262,7 +1263,8 @@ app.post('/api/guardar_farmaco_compra', (req, res) => {
                             connection.query(
                                 `UPDATE farmacos 
                                     SET 
-                                        nombre = ?, 
+                                        nombre = ?,
+                                        presentacion = ?,
                                         descripcion = ?, 
                                         precio_caja = ?, 
                                         precio_blister = ?, 
@@ -1292,14 +1294,15 @@ app.post('/api/guardar_farmaco_compra', (req, res) => {
                             // Insertamos un nuevo fármaco
                             connection.query(
                                 `INSERT INTO farmacos 
-                                (id, nombre, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, 
+                                (id, nombre, presentacion, descripcion, precio_caja, precio_blister, precio_unidad, precio_venta_caja, 
                                  precio_venta_blister, precio_venta_unidad, blisters_por_caja, unidades_por_blister, 
                                  stock_caja, stock_blister, stock_unidad, nivel_reorden, codigo_barras, proveedor_id, 
                                  laboratorio_id, fecha_vencimiento) 
-                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                                 [
                                     farmaco.id,
                                     farmaco.nombre,
+                                    farmaco.presentacion,
                                     farmaco.descripcion,
                                     farmaco.precio_caja,
                                     farmaco.precio_blister,
@@ -1411,6 +1414,7 @@ app.get('/api/farmaco/:id', (req, res) => {
       SELECT 
         f.id, 
         f.nombre, 
+        f.presentacion,
         f.descripcion, 
         f.precio_caja, 
         f.precio_blister, 
@@ -1518,9 +1522,6 @@ app.get('/api/detalle_compras/:Nofactura', (req, res) => {
     });
 });
 
-
-
-
 ////////////////////////////////Ventas/////////////////////////////////////////////////
 
 app.get('/api/farmaco_venta/:id', (req, res) => {
@@ -1529,91 +1530,72 @@ app.get('/api/farmaco_venta/:id', (req, res) => {
 
     console.log('ID:', id);
     console.log('TP:', tipo_presentacion);
-  
+
     const connection = mysql.createConnection(credentials);
-  
+
     // Define the SQL query with placeholders
     const query = `
-      SELECT 
-        f.id, 
-        f.nombre, 
-        f.descripcion, 
-        f.precio_caja, 
-        f.precio_blister, 
-        f.precio_unidad, 
-        f.precio_venta_caja, 
-        f.precio_venta_blister, 
-        f.precio_venta_unidad, 
-        f.blisters_por_caja, 
-        f.unidades_por_blister, 
-        f.stock_caja, 
-        f.stock_blister, 
-        f.stock_unidad, 
-        f.nivel_reorden,
-        f.codigo_barras,
-        f.proveedor_id,
-        f.laboratorio_id,
-        p.nombre AS proveedor, 
-        l.nombre AS laboratorio, 
-        f.fecha_creacion, 
-        f.ultima_actualizacion, 
-        f.stock_total_calculado, 
-        f.fecha_vencimiento 
-      FROM farmacos f 
-      INNER JOIN proveedores p ON f.proveedor_id = p.id 
-      INNER JOIN laboratorios l ON f.laboratorio_id = l.id 
-      WHERE f.id = ?
+     SELECT 
+    f.nombre,
+    f.precio_venta_caja, 
+    f.precio_venta_blister, 
+    f.precio_venta_unidad, 
+    f.presentacion 
+    FROM farmacos f 
+    WHERE f.id = ? AND (f.stock_caja > 0 OR f.stock_blister > 0 OR f.stock_unidad > 0)
+
     `;
-  
+
     connection.query(query, [id], (err, rows) => {
       if (err) {
         console.error('Database query error:', err); // Log the error
         return res.status(500).send('Error al consultar la base de datos');
       }
-  
+
       if (rows.length === 0) {
         return res.status(404).send('Fármaco no encontrado');
       }
-  
+
       const farmaco = rows[0];
       let precioVenta = 0;
-      let nombrePresentacion = '';
-  
+
       switch (tipo_presentacion) {
         case 'caja':
           precioVenta = farmaco.precio_venta_caja;
-          nombrePresentacion = 'Caja';
           break;
         case 'blister':
           precioVenta = farmaco.precio_venta_blister;
-          nombrePresentacion = 'Blister';
           break;
         case 'unidad':
           precioVenta = farmaco.precio_venta_unidad;
-          nombrePresentacion = 'Unidad';
           break;
         default:
           return res.status(400).send('Tipo de presentación inválido');
       }
-  
+
+      // Aquí asignamos el nombre de la presentación según el tipo
+      const nombrePresentacion = farmaco.presentacion // Convierte la primera letra a mayúscula
+
       res.status(200).send({
         nombre: farmaco.nombre,
         precio_venta: precioVenta,
+        presentacion: nombrePresentacion // Usa el nombre de presentación
       });
-  
+
       connection.end();
     });
-  });
+});
 
-  app.post('/api/guardar_farmaco_venta', (req, res) => {
-    const { total_venta, farmacos, Nofactura } = req.body;
+
+app.post('/api/guardar_farmaco_venta', (req, res) => {
+    const { total_venta, farmacos, Nofactura, nombre_cliente, nit } = req.body;
 
     // Verificación de parámetros
-    if (!total_venta || !farmacos || !Nofactura) {
+    if (!total_venta || !farmacos || !Nofactura || !nombre_cliente || !nit) {
         return res.status(400).send({ status: 'error', message: 'Faltan datos en la solicitud' });
     }
 
-    const ventaParams = [total_venta, Nofactura];
+    const ventaParams = [nombre_cliente, nit, total_venta, Nofactura];
     const connection = mysql.createConnection(credentials);
 
     connection.beginTransaction((err) => {
@@ -1626,7 +1608,7 @@ app.get('/api/farmaco_venta/:id', (req, res) => {
         }
 
         // Inserción en la tabla ventas
-        connection.query('INSERT INTO ventas (total_venta, Nofactura) VALUES (?, ?)', ventaParams, (err, result) => {
+        connection.query('INSERT INTO ventas (nombre_cliente, nit, total_venta, Nofactura) VALUES (?, ?, ?, ?)', ventaParams, (err, result) => {
             if (err) {
                 return connection.rollback(() => {
                     connection.end();
@@ -1655,7 +1637,6 @@ app.get('/api/farmaco_venta/:id', (req, res) => {
                             const { stock_unidad, stock_blister, stock_caja, blisters_por_caja, unidades_por_blister } = rows[0];
 
                             // Lógica para presentación "unidad"
-                            // Lógica para presentación "unidad"
                             if (tipo_presentacion === 'unidad') {
                                 let unidades_a_disminuir = cantidad;
                                 let nuevasUnidades = stock_unidad - unidades_a_disminuir;
@@ -1664,32 +1645,19 @@ app.get('/api/farmaco_venta/:id', (req, res) => {
 
                                 // Si las unidades no son suficientes, descontamos de los blisters
                                 if (nuevasUnidades < 0) {
-                                    // Cuántas unidades faltan
                                     let unidades_faltantes = Math.abs(nuevasUnidades);
-
-                                    // Cuántos blisters necesitamos para cubrir esas unidades faltantes
                                     let blisters_necesarios = Math.ceil(unidades_faltantes / unidades_por_blister);
-                                    
-                                    // Restamos esos blisters del stock de blisters
                                     nuevosBlisters = nuevosBlisters - blisters_necesarios;
-
-                                    // Calculamos el nuevo stock de unidades después de usar los blisters
                                     nuevasUnidades = (blisters_necesarios * unidades_por_blister) - unidades_faltantes;
 
-                                    // Si no hay suficientes blisters, descontamos de las cajas
                                     if (nuevosBlisters < 0) {
                                         let blisters_faltantes = Math.abs(nuevosBlisters);
                                         let cajas_necesarias = Math.ceil(blisters_faltantes / blisters_por_caja);
-
-                                        // Restamos esas cajas del stock de cajas
                                         nuevasCajas = stock_caja - cajas_necesarias;
-
-                                        // Calculamos el nuevo stock de blisters después de usar las cajas
                                         nuevosBlisters = (cajas_necesarias * blisters_por_caja) - blisters_faltantes;
                                     }
                                 }
 
-                                // Aseguramos que los valores sean mayores o iguales a cero antes de actualizar
                                 const updateQuery = `
                                     UPDATE farmacos
                                     SET stock_unidad = GREATEST(?, 0),
@@ -1697,24 +1665,15 @@ app.get('/api/farmaco_venta/:id', (req, res) => {
                                         stock_caja = GREATEST(?, 0)
                                     WHERE id = ?`;
 
-                                const updateParams = [nuevasUnidades, nuevosBlisters, nuevasCajas,  id];
-                              
+                                const updateParams = [nuevasUnidades, nuevosBlisters, nuevasCajas, id];
+
                                 connection.query(updateQuery, updateParams, (err) => {
                                     if (err) {
                                         return reject(new Error('Error al actualizar el stock del fármaco: ' + err.message));
                                     }
                                     resolve();
                                 });
-                            }
-
-                            
-                            
-                            
-                            
-                            
-                            
-                            // Lógica para presentación "blister"
-                            else if (tipo_presentacion === 'blister') {
+                            } else if (tipo_presentacion === 'blister') {
                                 let blisters_a_disminuir = cantidad;
                                 let nuevosBlisters = stock_blister - blisters_a_disminuir;
                                 let nuevasUnidades = stock_unidad - (cantidad * unidades_por_blister);
@@ -1732,9 +1691,7 @@ app.get('/api/farmaco_venta/:id', (req, res) => {
                                     }
                                     resolve();
                                 });
-                            }
-                            // Lógica para presentación "caja"
-                            else if (tipo_presentacion === 'caja') {
+                            } else if (tipo_presentacion === 'caja') {
                                 let nuevasCajas = stock_caja - cantidad;
                                 let nuevosBlisters = stock_blister - (cantidad * blisters_por_caja);
                                 let nuevasUnidades = stock_unidad - (cantidad * blisters_por_caja * unidades_por_blister);
@@ -1763,8 +1720,28 @@ app.get('/api/farmaco_venta/:id', (req, res) => {
                 });
             };
 
+            // Guardar detalles de la venta
+            const saveDetalleVentas = (farmaco) => {
+                return new Promise((resolve, reject) => {
+                    const { id, cantidad } = farmaco;
+                    const detalleParams = [Nofactura, id, cantidad];
+
+                    connection.query('INSERT INTO detalle_ventas (Nofactura, farmaco_id, cantidad) VALUES (?, ?, ?)', detalleParams, (err) => {
+                        if (err) {
+                            return reject(new Error('Error al insertar detalle de venta: ' + err.message));
+                        }
+                        resolve();
+                    });
+                });
+            };
+
             // Actualizar el stock para cada fármaco en el array
-            const promises = farmacos.map(farmaco => updateFarmacoStock(farmaco));
+            const promises = farmacos.map(farmaco => {
+                return Promise.all([
+                    updateFarmacoStock(farmaco),
+                    saveDetalleVentas(farmaco)
+                ]);
+            });
 
             Promise.all(promises)
                 .then(() => {
@@ -1797,6 +1774,7 @@ app.get('/api/farmaco_venta/:id', (req, res) => {
     });
 });
 
+
 ////////////////////////////////////// Historila ventas ////////////////////////////////
 
 app.get('/api/historial_ventas', (req, res) => {
@@ -1809,6 +1787,43 @@ app.get('/api/historial_ventas', (req, res) => {
         }
     });
     connection.end();
+});
+
+app.get('/api/detalle_ventas/:Nofactura', (req, res) => {
+    const { Nofactura } = req.params;
+    const connection = mysql.createConnection(credentials);
+
+    const query = `
+       SELECT 
+            dv.id AS detalle_id,
+            dv.Nofactura,
+            f.nombre AS nombre_farmaco,
+            dv.cantidad,
+            GREATEST(f.precio_venta_caja, f.precio_venta_blister, f.precio_venta_unidad) AS precio_venta,
+            (dv.cantidad * GREATEST(f.precio_venta_caja, f.precio_venta_blister, f.precio_venta_unidad)) AS total_farmaco,
+            v.total_venta
+        FROM 
+            detalle_ventas dv
+        INNER JOIN 
+            farmacos f ON dv.farmaco_id = f.id
+        INNER JOIN 
+            ventas v ON dv.Nofactura = v.Nofactura
+        WHERE 
+            dv.Nofactura = ?;
+
+    `;
+
+    connection.query(query, [Nofactura], (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else if (rows.length === 0) {
+            res.status(404).send('No se encontraron detalles para esta factura.');
+        } else {
+            // Enviar todos los resultados, no solo el primero
+            res.status(200).send(rows); // Cambiar aquí para enviar `rows` en lugar de `rows[0]`
+        }
+        connection.end();
+    });
 });
 
 /////////////////////// Notificaciones /////////////////////////
