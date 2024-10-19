@@ -1867,7 +1867,7 @@ app.get('/api/farmacos_prontos_a_vencer', (req, res) => {
 
 
 app.listen(5000, () => {
-    console.log('Server 5000');
+    console.log('Server 5000, funciona :)');
 });
 
  
