@@ -1590,7 +1590,7 @@ app.post('/api/guardar_farmaco_venta', (req, res) => {
             // Función para actualizar el stock de un fármaco
             const updateFarmacoStock = (farmaco) => {
                 return new Promise((resolve, reject) => {
-                    const { id, cantidad, tipo_presentacion } = farmaco;
+                    const { id, cantidad, presentacion } = farmaco;
 
                     // Consultar stock actual y detalles de la presentación
                     connection.query('SELECT stock_unidad, stock_blister, stock_caja, blisters_por_caja, unidades_por_blister FROM farmacos WHERE id = ?', [id], (err, rows) => {
@@ -1602,7 +1602,7 @@ app.post('/api/guardar_farmaco_venta', (req, res) => {
                             const { stock_unidad, stock_blister, stock_caja, blisters_por_caja, unidades_por_blister } = rows[0];
 
                             // Lógica para presentación "unidad"
-                            if (tipo_presentacion === 'unidad') {
+                            if (presentacion === 'unidad') {
                                 let unidades_a_disminuir = cantidad;
                                 let nuevasUnidades = stock_unidad - unidades_a_disminuir;
                                 let nuevosBlisters = stock_blister;
@@ -1638,7 +1638,7 @@ app.post('/api/guardar_farmaco_venta', (req, res) => {
                                     }
                                     resolve();
                                 });
-                            } else if (tipo_presentacion === 'blister') {
+                            } else if (presentacion === 'blister') {
                                 let blisters_a_disminuir = cantidad;
                                 let nuevosBlisters = stock_blister - blisters_a_disminuir;
                                 let nuevasUnidades = stock_unidad - (cantidad * unidades_por_blister);
@@ -1656,7 +1656,7 @@ app.post('/api/guardar_farmaco_venta', (req, res) => {
                                     }
                                     resolve();
                                 });
-                            } else if (tipo_presentacion === 'caja') {
+                            } else if (presentacion === 'caja') {
                                 let nuevasCajas = stock_caja - cantidad;
                                 let nuevosBlisters = stock_blister - (cantidad * blisters_por_caja);
                                 let nuevasUnidades = stock_unidad - (cantidad * blisters_por_caja * unidades_por_blister);
