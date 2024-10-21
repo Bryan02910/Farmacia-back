@@ -1209,21 +1209,25 @@ app.get('/api/detalle_compras/:Nofactura', (req, res) => {
 
     const query = `
         SELECT 
-            dc.id AS detalle_id,
-            dc.Nofactura,
-            f.nombre AS nombre_farmaco,
-            dc.cantidad,
-            GREATEST(f.precio_caja, f.precio_blister, f.precio_unidad) AS precio_compra,
-            (dc.cantidad * GREATEST(f.precio_caja, f.precio_blister, f.precio_unidad)) AS total_farmaco,
-            c.total_compra
-        FROM 
-            detalle_compras dc
-        INNER JOIN 
-            farmacos f ON dc.farmaco_id = f.id
-        INNER JOIN 
-            compras c ON dc.Nofactura = c.Nofactura
-        WHERE 
-            dc.Nofactura = ?;
+                dc.id AS detalle_id,
+                dc.Nofactura,
+                c.tipo_documento_id,
+                tp.nombre_documento AS tipo_documento,
+                f.nombre AS nombre_farmaco,
+                dc.cantidad,
+                GREATEST(f.precio_caja, f.precio_blister, f.precio_unidad) AS precio_compra,
+                (dc.cantidad * GREATEST(f.precio_caja, f.precio_blister, f.precio_unidad)) AS total_farmaco,
+                c.total_compra
+            FROM 
+                detalle_compras dc
+            INNER JOIN 
+                farmacos f ON dc.farmaco_id = f.id
+            INNER JOIN 
+                compras c ON dc.Nofactura = c.Nofactura
+            INNER JOIN 
+                tipo_documento tp ON c.tipo_documento_id = tp.id
+            WHERE 
+                dc.Nofactura = ?;
     `;
 
     connection.query(query, [Nofactura], (err, rows) => {
