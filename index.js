@@ -1526,65 +1526,30 @@ app.get('/api/detalle_compras/:Nofactura', (req, res) => {
 
 app.get('/api/farmaco_venta/:id', (req, res) => {
     const { id } = req.params;
-    const { tipo_presentacion } = req.query;
-
-    console.log('ID:', id);
-    console.log('TP:', tipo_presentacion);
-
     const connection = mysql.createConnection(credentials);
-
-    // Define the SQL query with placeholders
+  
     const query = `
      SELECT 
-    f.nombre,
-    f.precio_venta_caja, 
-    f.precio_venta_blister, 
-    f.precio_venta_unidad, 
-    f.presentacion 
-    FROM farmacos f 
-    WHERE f.id = ? AND (f.stock_caja > 0 OR f.stock_blister > 0 OR f.stock_unidad > 0)
-
+        f.nombre,
+        f.precio_venta_caja, 
+        f.precio_venta_blister, 
+        f.precio_venta_unidad, 
+        f.presentacion 
+        FROM farmacos f 
+        WHERE f.id = ? AND (f.stock_caja > 0 OR f.stock_blister > 0 OR f.stock_unidad > 0)
     `;
-
+  
     connection.query(query, [id], (err, rows) => {
       if (err) {
-        console.error('Database query error:', err); // Log the error
-        return res.status(500).send('Error al consultar la base de datos');
+        res.status(500).send(err);
+      } else if (rows.length === 0) {
+        res.status(404).send('Fármaco no encontrado');
+      } else {
+        res.status(200).send(rows[0]);
       }
-
-      if (rows.length === 0) {
-        return res.status(404).send('Fármaco no encontrado');
-      }
-
-      const farmaco = rows[0];
-      let precioVenta = 0;
-
-      switch (tipo_presentacion) {
-        case 'caja':
-          precioVenta = farmaco.precio_venta_caja;
-          break;
-        case 'blister':
-          precioVenta = farmaco.precio_venta_blister;
-          break;
-        case 'unidad':
-          precioVenta = farmaco.precio_venta_unidad;
-          break;
-        default:
-          return res.status(400).send('Tipo de presentación inválido');
-      }
-
-      // Aquí asignamos el nombre de la presentación según el tipo
-      const nombrePresentacion = farmaco.presentacion // Convierte la primera letra a mayúscula
-
-      res.status(200).send({
-        nombre: farmaco.nombre,
-        precio_venta: precioVenta,
-        presentacion: nombrePresentacion // Usa el nombre de presentación
-      });
-
       connection.end();
     });
-});
+  });
 
 
 app.post('/api/guardar_farmaco_venta', (req, res) => {
