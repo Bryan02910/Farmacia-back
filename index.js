@@ -1125,7 +1125,7 @@ app.post('/api/guardar_farmaco_compra', (req, res) => {
         });
     });
 });
-app.get('/api/farmaco/:id', (req, res) => {
+/*app.get('/api/farmaco/:id', (req, res) => {
     const { id } = req.params;
     const connection = mysql.createConnection(credentials);
   
@@ -1172,7 +1172,60 @@ app.get('/api/farmaco/:id', (req, res) => {
       }
       connection.end();
     });
-  });
+  });*/
+
+
+app.get('/api/farmaco/:idOrName', (req, res) => {
+    const { idOrName } = req.params;
+    const connection = mysql.createConnection(credentials);
+
+    const query = `
+      SELECT 
+        f.id, 
+        f.nombre, 
+        f.presentacion,
+        f.descripcion, 
+        f.precio_caja, 
+        f.precio_blister, 
+        f.precio_unidad, 
+        f.precio_venta_caja, 
+        f.precio_venta_blister, 
+        f.precio_venta_unidad, 
+        f.blisters_por_caja, 
+        f.unidades_por_blister, 
+        f.stock_caja, 
+        f.stock_blister, 
+        f.stock_unidad, 
+        f.nivel_reorden,
+        f.codigo_barras,
+        f.proveedor_id,
+        f.laboratorio_id,
+        p.nombre AS proveedor, 
+        l.nombre AS laboratorio, 
+        f.fecha_creacion, 
+        f.ultima_actualizacion, 
+        f.stock_total_calculado, 
+        f.fecha_vencimiento 
+      FROM farmacos f 
+      INNER JOIN proveedores p ON f.proveedor_id = p.id 
+      INNER JOIN laboratorios l ON f.laboratorio_id = l.id 
+      WHERE f.id = ? OR f.nombre = ?
+    `;
+
+    connection.query(query, [idOrName, idOrName], (err, rows) => {
+      if (err) {
+        res.status(500).send(err);
+      } else if (rows.length === 0) {
+        res.status(404).send('Fármaco no encontrado');
+      } else {
+        res.status(200).send(rows[0]);
+      }
+      connection.end();
+    });
+});
+
+  
+  
 ///////////////////////////// Historial Compras ////////////////////////////////////////
 app.get('/api/historial_compras', (req, res) => {
     var connection = mysql.createConnection(credentials);
