@@ -667,6 +667,7 @@ app.get('/api/farmacos', (req, res) => {
     f.id, 
     f.nombre,  
     f.descripcion, 
+    f.presentacion,
     CASE 
         WHEN f.precio_caja = 0 THEN '-' 
         ELSE f.precio_caja 
@@ -1224,8 +1225,7 @@ app.get('/api/farmaco/:idOrName', (req, res) => {
     });
 });
 
-  
-  
+
 ///////////////////////////// Historial Compras ////////////////////////////////////////
 app.get('/api/historial_compras', (req, res) => {
     var connection = mysql.createConnection(credentials);
@@ -1558,6 +1558,78 @@ app.get('/api/detalle_ventas/:Nofactura', (req, res) => {
         connection.end();
     });
 });
+
+app.get('/api/farmacos_venta', (req, res) => {
+    var connection = mysql.createConnection(credentials);
+    const query = `
+     SELECT 
+        f.id, 
+        f.nombre,  
+        f.descripcion, 
+        f.presentacion,
+        CASE 
+            WHEN f.precio_caja = 0 THEN '-' 
+            ELSE f.precio_caja 
+        END AS precio_caja,
+        CASE 
+            WHEN f.precio_blister = 0 THEN '-' 
+            ELSE f.precio_blister 
+        END AS precio_blister,
+        CASE 
+            WHEN f.precio_unidad = 0 THEN '-' 
+            ELSE f.precio_unidad 
+        END AS precio_unidad,
+        CASE 
+            WHEN f.precio_venta_caja = 0 THEN '-' 
+            ELSE f.precio_venta_caja 
+        END AS precio_venta_caja,
+        CASE 
+            WHEN f.precio_venta_blister = 0 THEN '-' 
+            ELSE f.precio_venta_blister 
+        END AS precio_venta_blister,
+        CASE 
+            WHEN f.precio_venta_unidad = 0 THEN '-' 
+            ELSE f.precio_venta_unidad 
+        END AS precio_venta_unidad,
+        CASE 
+            WHEN f.stock_caja = 0 THEN '-' 
+            ELSE f.stock_caja 
+        END AS stock_caja,
+        CASE 
+            WHEN f.stock_blister = 0 THEN '-' 
+            ELSE f.stock_blister 
+        END AS stock_blister,
+        CASE 
+            WHEN f.stock_unidad = 0 THEN '-' 
+            ELSE f.stock_unidad 
+        END AS stock_unidad,
+        f.nivel_reorden,
+        f.codigo_barras,
+        f.proveedor_id,
+        f.laboratorio_id,
+        p.nombre AS proveedor, 
+        l.nombre AS laboratorio, 
+        f.fecha_creacion, 
+        f.ultima_actualizacion, 
+        f.stock_total_calculado, 
+        f.fecha_vencimiento 
+    FROM farmacos f 
+    INNER JOIN proveedores p ON f.proveedor_id = p.id 
+    INNER JOIN laboratorios l ON f.laboratorio_id = l.id
+    WHERE f.stock_caja > 0 OR f.stock_blister > 0 OR f.stock_unidad > 0;
+
+    `;
+
+    connection.query(query, (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+        connection.end();
+    });
+});
+
 
 /////////////////////// Notificaciones /////////////////////////
 app.get('/api/stock_bajo', (req, res) => {
