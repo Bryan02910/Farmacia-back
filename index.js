@@ -921,6 +921,7 @@ app.post('/api/guardar_farmaco_compra', (req, res) => {
     console.log('Factura:', Nofactura);
     console.log('Documento:', documentoId);
     console.log('Fármacos:', farmacos);
+    
 
     const connection = mysql.createConnection(credentials);
 
@@ -1074,7 +1075,11 @@ app.post('/api/guardar_farmaco_compra', (req, res) => {
                 .then((farmacoIds) => {
                     // Inserción en la tabla detalle_compras
                     const detallePromises = farmacos.map((farmaco, index) => {
-                        const cantidad = Math.max(farmaco.stock_caja, farmaco.stock_blister, farmaco.stock_unidad); // Obtener el stock más alto
+                        const cantidad = Math.max(
+                            Number(farmaco.stock_caja) || 0,
+                            Number(farmaco.stock_blister) || 0,
+                            Number(farmaco.stock_unidad) || 0
+                        );// Obtener el stock más alto
                         return new Promise((resolve, reject) => {
                             const detalleParams = [
                                 Nofactura,
@@ -1126,55 +1131,6 @@ app.post('/api/guardar_farmaco_compra', (req, res) => {
         });
     });
 });
-/*app.get('/api/farmaco/:id', (req, res) => {
-    const { id } = req.params;
-    const connection = mysql.createConnection(credentials);
-  
-    const query = `
-      SELECT 
-        f.id, 
-        f.nombre, 
-        f.presentacion,
-        f.descripcion, 
-        f.precio_caja, 
-        f.precio_blister, 
-        f.precio_unidad, 
-        f.precio_venta_caja, 
-        f.precio_venta_blister, 
-        f.precio_venta_unidad, 
-        f.blisters_por_caja, 
-        f.unidades_por_blister, 
-        f.stock_caja, 
-        f.stock_blister, 
-        f.stock_unidad, 
-        f.nivel_reorden,
-        f.codigo_barras,
-        f.proveedor_id,
-        f.laboratorio_id,
-        p.nombre AS proveedor, 
-        l.nombre AS laboratorio, 
-        f.fecha_creacion, 
-        f.ultima_actualizacion, 
-        f.stock_total_calculado, 
-        f.fecha_vencimiento 
-      FROM farmacos f 
-      INNER JOIN proveedores p ON f.proveedor_id = p.id 
-      INNER JOIN laboratorios l ON f.laboratorio_id = l.id 
-      WHERE f.id = ?
-    `;
-  
-    connection.query(query, [id], (err, rows) => {
-      if (err) {
-        res.status(500).send(err);
-      } else if (rows.length === 0) {
-        res.status(404).send('Fármaco no encontrado');
-      } else {
-        res.status(200).send(rows[0]);
-      }
-      connection.end();
-    });
-  });*/
-
 
 app.get('/api/farmaco/:idOrName', (req, res) => {
     const { idOrName } = req.params;
