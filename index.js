@@ -171,9 +171,6 @@ app.post('/api/login', async (req, res) => {
 });
 
 
-
-
-
 app.get('/api/usuarios', (req, res) => {
     var connection = mysql.createConnection(credentials);
     const query = `
@@ -1637,9 +1634,77 @@ app.get('/api/farmacos_prontos_a_vencer', (req, res) => {
     connection.end();
 });
 
+//////////////////////////Cliente/////////////////////////////////////
 
+// Obtener todos los clientes
+app.get('/api/clientes', (req, res) => {
+    const connection = mysql.createConnection(credentials);
+    connection.query('SELECT id, nombre, correo, dpi, nit, telefono, direccion, estado FROM cliente', (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+    });
+    connection.end();
+});
 
+// Obtener un cliente específico
+app.get('/api/cliente_select', (req, res) => {
+    const connection = mysql.createConnection(credentials);
+    connection.query('SELECT * FROM cliente', (err, rows) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send(rows);
+        }
+    });
+    connection.end();
+});
 
+// Eliminar un cliente
+app.post('/api/eliminar_cliente', (req, res) => {
+    const { id } = req.body;
+    const connection = mysql.createConnection(credentials);
+    connection.query('DELETE FROM cliente WHERE id = ?', [id], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ status: "success", message: "Cliente eliminado" });
+        }
+    });
+    connection.end();
+});
+
+// Guardar un nuevo cliente
+app.post('/api/guardar_cliente', (req, res) => {
+    const { id, nombre, correo, dpi, nit, telefono, direccion, estado } = req.body;
+    const params = [[id, nombre, correo, dpi, nit, telefono, direccion, estado]];
+    const connection = mysql.createConnection(credentials);
+    connection.query('INSERT INTO cliente (id, nombre, correo, dpi, nit, telefono, direccion, estado) VALUES ?', [params], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ status: "success", message: "Cliente creado" });
+        }
+    });
+    connection.end();
+});
+
+// Editar un cliente existente
+app.post('/api/editar_cliente', (req, res) => {
+    const { id, nombre, correo, dpi, nit, telefono, direccion, estado } = req.body;
+    const params = [nombre, correo, dpi, nit, telefono, direccion, estado, id];
+    const connection = mysql.createConnection(credentials);
+    connection.query('UPDATE cliente SET nombre = ?, correo = ?, dpi = ?, nit = ?, telefono = ?, direccion = ?, estado = ? WHERE id = ?', params, (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+        } else {
+            res.status(200).send({ status: "success", message: "Cliente editado" });
+        }
+    });
+    connection.end();
+});
 
 
 app.listen(5000, () => {
