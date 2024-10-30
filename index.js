@@ -477,7 +477,8 @@ app.get('/api/permisos', (req, res) => {
             MAX(CASE WHEN p.id = '10' THEN 'Sí' ELSE 'No' END) AS ver_historial_compras,
             MAX(CASE WHEN p.id = '11' THEN 'Sí' ELSE 'No' END) AS ver_historial_ventas,
             MAX(CASE WHEN p.id = '12' THEN 'Sí' ELSE 'No' END) AS ver_tipod,
-            MAX(CASE WHEN p.id = '13' THEN 'Sí' ELSE 'No' END) AS ver_permisos
+            MAX(CASE WHEN p.id = '13' THEN 'Sí' ELSE 'No' END) AS ver_permisos,
+            MAX(CASE WHEN p.id = '14' THEN 'Sí' ELSE 'No' END) AS ver_cliente
         FROM 
             rol r
         LEFT JOIN 
